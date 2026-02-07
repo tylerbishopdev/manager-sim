@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import type { ManagerCharacter } from '../types';
 import { presetManagers } from '../data/presets';
 
@@ -13,17 +13,16 @@ export default function CharacterSelect({ onSelect, onCustom, onBack }: Props) {
   const current = presetManagers.find((m) => m.id === selected);
 
   const [brokenImgs, setBrokenImgs] = useState<Set<string>>(new Set());
-  const markBroken = (id: string) =>
-    setBrokenImgs((prev) => new Set(prev).add(id));
+  const markBroken = useCallback((id: string) =>
+    setBrokenImgs((prev) => new Set(prev).add(id)), []);
 
   const [brokenSprites, setBrokenSprites] = useState<Set<string>>(new Set());
-  const markBrokenSprite = (id: string) =>
-    setBrokenSprites((prev) => new Set(prev).add(id));
+  const markBrokenSprite = useCallback((id: string) =>
+    setBrokenSprites((prev) => new Set(prev).add(id)), []);
 
   /** On mobile, tapping a selected card again confirms it */
   const handleCardTap = (id: string) => {
     if (selected === id) {
-      // double-tap to confirm
       if (id === 'custom') {
         onCustom();
       } else {
@@ -49,6 +48,8 @@ export default function CharacterSelect({ onSelect, onCustom, onBack }: Props) {
           return (
             <div
               key={m.id}
+              role="button"
+              tabIndex={0}
               className={`sel-card${active ? ' active' : ''}`}
               onClick={() => handleCardTap(m.id)}
             >
@@ -85,6 +86,8 @@ export default function CharacterSelect({ onSelect, onCustom, onBack }: Props) {
 
         {/* Create-a-Player */}
         <div
+          role="button"
+          tabIndex={0}
           className={`sel-card${selected === 'custom' ? ' active' : ''}`}
           onClick={() => handleCardTap('custom')}
         >
@@ -115,9 +118,9 @@ export default function CharacterSelect({ onSelect, onCustom, onBack }: Props) {
             else if (current) onSelect(current);
           }}
         >
-          A: CHOOSE
+          CHOOSE
         </button>
-        <button className="sel-btn" onClick={onBack}>B: BACK</button>
+        <button className="sel-btn" onClick={onBack}>BACK</button>
       </div>
     </div>
   );

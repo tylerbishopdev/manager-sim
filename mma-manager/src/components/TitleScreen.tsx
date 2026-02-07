@@ -25,65 +25,31 @@ export default function TitleScreen({ onStart }: Props) {
   }, [showMenu, selectedIdx, onStart]);
 
   return (
-    <div className="scanlines" style={{
-      width: '100vw', height: '100vh',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      background: 'radial-gradient(ellipse at center, #1a1a3e 0%, #0a0a1a 70%)',
-    }}>
-      {/* Octagon background decoration */}
-      <div style={{
-        position: 'absolute',
-        width: 300, height: 300,
-        opacity: 0.06,
-        border: '4px solid #d4a017',
-        transform: 'rotate(22.5deg)',
-        clipPath: 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)',
-        pointerEvents: 'none',
-      }} />
+    <div className="scanlines title-screen">
+      {/* Octagon background decoration - pointer-events: none via CSS */}
+      <div className="title-octagon" />
 
       {/* Title */}
       <div className="animate-fadeIn" style={{ textAlign: 'center', marginBottom: 16 }}>
-        <div style={{
-          fontSize: 12, color: '#888', letterSpacing: 6,
-          marginBottom: 16,
-        }}>
-          ★<span style={{ fontStyle: 'monospace', color: '#d4a017', fontSize: 10 }}> Not Software </span> PRESENTS ★
+        <div className="title-presents">
+          &#9733; <span style={{ color: '#d4a017' }}>Not Software</span> PRESENTS &#9733;
         </div>
-        <h1 className="animate-glow" style={{
-          fontSize: 36, color: '#d4a017',
-          textShadow: '0 0 30px rgba(212,160,23,0.4), 0 4px 0 #8b6914',
-          lineHeight: 1.2,
-        }}>
-          MMA
-        </h1>
-        <h2 style={{
-          fontSize: 20, color: '#f0d060',
-          letterSpacing: 8,
-          textShadow: '0 0 20px rgba(240,208,96,0.3)',
-        }}>
-          MANAGER
-        </h2>
-        <div style={{
-          fontSize: 8, color: '#555', marginTop: 8,
-          letterSpacing: 4,
-        }}>
-          BUILD YOUR EMPIRE
-        </div>
+        <h1 className="title-mma animate-glow">MMA</h1>
+        <h2 className="title-manager">MANAGER</h2>
+        <div className="title-subtitle">BUILD YOUR EMPIRE</div>
       </div>
 
       {/* Decorative line */}
-      <div style={{
-        width: 200, height: 2, margin: '20px 0',
-        background: 'linear-gradient(90deg, transparent, #d4a017, transparent)',
-      }} />
+      <div className="title-divider" />
 
       {/* Menu */}
       {showMenu && (
-        <div className="animate-slideUp" style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 260 }}>
+        <div className="animate-slideUp title-menu">
           {['NEW GAME', 'CONTINUE', 'OPTIONS'].map((label, i) => (
             <div
               key={label}
+              role="button"
+              tabIndex={0}
               className={`menu-item ${selectedIdx === i ? 'selected' : ''}`}
               onClick={() => {
                 setSelectedIdx(i);
@@ -100,23 +66,13 @@ export default function TitleScreen({ onStart }: Props) {
 
       {/* Bottom prompt */}
       {showMenu && (
-        <div className="animate-pulse-slow" style={{
-          position: 'absolute', bottom: 40,
-          fontSize: 9, color: '#555', letterSpacing: 3,
-          pointerEvents: 'none',
-        }}>
-          PRESS ENTER OR CLICK
+        <div className="title-bottom-prompt animate-pulse-slow">
+          PRESS ENTER OR TAP
         </div>
       )}
 
       {/* Version */}
-      <div style={{
-        position: 'absolute', bottom: 12, right: 16,
-        fontSize: 7, color: '#333',
-        pointerEvents: 'none',
-      }}>
-        v0.1.0
-      </div>
+      <div className="title-version">v0.1.0</div>
     </div>
   );
 }
