@@ -39,6 +39,7 @@ export default function TitleScreen({ onStart }: Props) {
         border: '4px solid #d4a017',
         transform: 'rotate(22.5deg)',
         clipPath: 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)',
+        pointerEvents: 'none',
       }} />
 
       {/* Title */}
@@ -102,6 +103,7 @@ export default function TitleScreen({ onStart }: Props) {
         <div className="animate-pulse-slow" style={{
           position: 'absolute', bottom: 40,
           fontSize: 9, color: '#555', letterSpacing: 3,
+          pointerEvents: 'none',
         }}>
           PRESS ENTER OR CLICK
         </div>
@@ -111,6 +113,7 @@ export default function TitleScreen({ onStart }: Props) {
       <div style={{
         position: 'absolute', bottom: 12, right: 16,
         fontSize: 7, color: '#333',
+        pointerEvents: 'none',
       }}>
         v0.1.0
       </div>
