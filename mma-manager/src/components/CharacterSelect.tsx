@@ -8,19 +8,10 @@ interface Props {
   onBack: () => void;
 }
 
-/**
- * Arcade-style "Select Your Manager" screen.
- *
- * Layout matches the reference: big portrait cards in a row,
- * character name plate underneath, action bar at bottom.
- * Portraits load from public/portraits/{id}.png.
- * When the image is missing a clean placeholder is shown.
- */
 export default function CharacterSelect({ onSelect, onCustom, onBack }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
   const current = presetManagers.find((m) => m.id === selected);
 
-  /** Image error tracker so we can fall back gracefully */
   const [brokenImgs, setBrokenImgs] = useState<Set<string>>(new Set());
   const markBroken = (id: string) =>
     setBrokenImgs((prev) => new Set(prev).add(id));
@@ -29,12 +20,26 @@ export default function CharacterSelect({ onSelect, onCustom, onBack }: Props) {
   const markBrokenSprite = (id: string) =>
     setBrokenSprites((prev) => new Set(prev).add(id));
 
+  /** On mobile, tapping a selected card again confirms it */
+  const handleCardTap = (id: string) => {
+    if (selected === id) {
+      // double-tap to confirm
+      if (id === 'custom') {
+        onCustom();
+      } else {
+        const m = presetManagers.find((p) => p.id === id);
+        if (m) onSelect(m);
+      }
+    } else {
+      setSelected(id);
+    }
+  };
+
   return (
     <div className="scanlines sel-screen">
-      {/* ── Title ── */}
       <h1 className="sel-title animate-fadeIn">SELECT YOUR MANAGER</h1>
 
-      {/* ── Cards ── */}
+      {/* Horizontal-scrollable on mobile, flex row on desktop */}
       <div className="sel-row animate-slideUp">
         {presetManagers.map((m) => {
           const active = selected === m.id;
@@ -45,9 +50,8 @@ export default function CharacterSelect({ onSelect, onCustom, onBack }: Props) {
             <div
               key={m.id}
               className={`sel-card${active ? ' active' : ''}`}
-              onClick={() => setSelected(m.id)}
+              onClick={() => handleCardTap(m.id)}
             >
-              {/* Portrait */}
               <div className="sel-portrait" style={{ background: m.portraitBg }}>
                 {hasPortrait ? (
                   <img
@@ -62,8 +66,6 @@ export default function CharacterSelect({ onSelect, onCustom, onBack }: Props) {
                     <span className="sel-portrait-silhouette">?</span>
                   </div>
                 )}
-
-                {/* Sprite overlay at bottom-left */}
                 {hasSprite && (
                   <img
                     src={m.sprite}
@@ -74,8 +76,6 @@ export default function CharacterSelect({ onSelect, onCustom, onBack }: Props) {
                   />
                 )}
               </div>
-
-              {/* Name plate */}
               <div className="sel-name-plate">
                 <span className="sel-char-name">{m.name}</span>
               </div>
@@ -83,10 +83,10 @@ export default function CharacterSelect({ onSelect, onCustom, onBack }: Props) {
           );
         })}
 
-        {/* ── Create-a-Player card ── */}
+        {/* Create-a-Player */}
         <div
           className={`sel-card${selected === 'custom' ? ' active' : ''}`}
-          onClick={() => setSelected('custom')}
+          onClick={() => handleCardTap('custom')}
         >
           <div className="sel-portrait" style={{ background: '#1a1a30' }}>
             <div className="sel-portrait-empty">
@@ -100,24 +100,24 @@ export default function CharacterSelect({ onSelect, onCustom, onBack }: Props) {
         </div>
       </div>
 
-      {/* ── Action bar ── */}
+      {/* Hint text on mobile when something is selected */}
+      {selected && (
+        <div className="sel-tap-hint">TAP AGAIN TO CONFIRM</div>
+      )}
+
+      {/* Action bar */}
       <div className="sel-actions">
         <button
           className="sel-btn"
           disabled={!selected}
           onClick={() => {
-            if (selected === 'custom') {
-              onCustom();
-            } else if (current) {
-              onSelect(current);
-            }
+            if (selected === 'custom') onCustom();
+            else if (current) onSelect(current);
           }}
         >
           A: CHOOSE
         </button>
-        <button className="sel-btn" onClick={onBack}>
-          B: BACK
-        </button>
+        <button className="sel-btn" onClick={onBack}>B: BACK</button>
       </div>
     </div>
   );

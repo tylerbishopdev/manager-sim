@@ -8,11 +8,13 @@ interface Props {
   onBack: () => void;
 }
 
+type MobileTab = 'look' | 'info';
+
 export default function CharacterCreator({ onConfirm, onBack }: Props) {
   const [selectedPortrait, setSelectedPortrait] = useState(customPortraits[0]);
   const [name, setName] = useState('');
+  const [mobileTab, setMobileTab] = useState<MobileTab>('look');
 
-  // Stat allocation: 20 points across 4 stats, each 1–10
   const [stats, setStats] = useState({
     charisma: 5,
     negotiation: 5,
@@ -47,14 +49,27 @@ export default function CharacterCreator({ onConfirm, onBack }: Props) {
 
   return (
     <div className="scanlines create-screen">
-      {/* ── Title ── */}
       <h1 className="create-title animate-fadeIn">CREATE-A-PLAYER</h1>
 
-      {/* ── Main content ── */}
-      <div className="create-body animate-slideUp">
+      {/* ── Mobile tab switcher (hidden on desktop) ── */}
+      <div className="create-mobile-tabs">
+        <button
+          className={`create-mobile-tab${mobileTab === 'look' ? ' active' : ''}`}
+          onClick={() => setMobileTab('look')}
+        >
+          LOOK
+        </button>
+        <button
+          className={`create-mobile-tab${mobileTab === 'info' ? ' active' : ''}`}
+          onClick={() => setMobileTab('info')}
+        >
+          NAME & STATS
+        </button>
+      </div>
 
-        {/* Left: big portrait preview + name + stats */}
-        <div className="create-left">
+      <div className="create-body animate-slideUp">
+        {/* Left: portrait preview + name + stats (desktop always visible, mobile via tab) */}
+        <div className={`create-left${mobileTab === 'look' ? '' : ' create-mobile-hide'}`}>
           <div className="create-portrait-frame">
             <img
               src={selectedPortrait.src}
@@ -63,8 +78,15 @@ export default function CharacterCreator({ onConfirm, onBack }: Props) {
               className="create-portrait-img"
             />
           </div>
+        </div>
 
-          {/* Name input */}
+        {/* Name & Stats section (desktop: in left col below portrait, mobile: separate tab) */}
+        <div className={`create-form-mobile${mobileTab === 'info' ? '' : ' create-mobile-hide'}`}>
+          {/* Small portrait reminder on info tab */}
+          <div className="create-mini-portrait">
+            <img src={selectedPortrait.src} alt="" draggable={false} />
+          </div>
+
           <div className="create-section" style={{ width: '100%' }}>
             <div className="create-label">MANAGER NAME</div>
             <input
@@ -80,7 +102,42 @@ export default function CharacterCreator({ onConfirm, onBack }: Props) {
             <div className="create-hint">{name.length}/16</div>
           </div>
 
-          {/* Stats */}
+          <div className="create-section" style={{ width: '100%' }}>
+            <div className="create-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>STATS</span>
+              <span style={{ color: remaining > 0 ? '#f0d060' : '#556' }}>
+                {remaining} PTS LEFT
+              </span>
+            </div>
+            {(Object.keys(stats) as (keyof typeof stats)[]).map((stat) => (
+              <div key={stat} className="create-stat-row">
+                <button className="create-stat-btn" onClick={() => adjustStat(stat, -1)}>−</button>
+                <div style={{ flex: 1 }}>
+                  <StatBar label={stat.toUpperCase()} value={stats[stat]} />
+                </div>
+                <button className="create-stat-btn" onClick={() => adjustStat(stat, 1)}>+</button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Desktop: name+stats below portrait in left col */}
+        <div className="create-left-form-desktop">
+          <div className="create-section" style={{ width: '100%' }}>
+            <div className="create-label">MANAGER NAME</div>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value.slice(0, 16))}
+              placeholder="Enter name..."
+              maxLength={16}
+              className="create-input"
+              onFocus={(e) => (e.target.style.borderColor = '#d4a017')}
+              onBlur={(e) => (e.target.style.borderColor = '#3a5a90')}
+            />
+            <div className="create-hint">{name.length}/16</div>
+          </div>
+
           <div className="create-section" style={{ width: '100%' }}>
             <div className="create-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>STATS</span>
@@ -101,8 +158,8 @@ export default function CharacterCreator({ onConfirm, onBack }: Props) {
         </div>
 
         {/* Right: portrait picker grid */}
-        <div className="create-right">
-          <div className="create-label">CHOOSE YOUR LOOK</div>
+        <div className={`create-right${mobileTab === 'look' ? '' : ' create-mobile-hide'}`}>
+          <div className="create-label create-label-desktop">CHOOSE YOUR LOOK</div>
           <div className="create-picker-grid">
             {customPortraits.map((p) => (
               <div
@@ -118,7 +175,6 @@ export default function CharacterCreator({ onConfirm, onBack }: Props) {
         </div>
       </div>
 
-      {/* ── Action bar ── */}
       <div className="sel-actions">
         <button className="sel-btn" onClick={handleConfirm}>A: CONFIRM</button>
         <button className="sel-btn" onClick={onBack}>B: BACK</button>
