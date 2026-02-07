@@ -49,8 +49,8 @@ export default function ConfirmScreen({ manager, onConfirm, onBack }: Props) {
       <div className="confirm-prompt">READY TO ENTER THE OCTAGON?</div>
 
       <div className="sel-actions">
-        <button className="sel-btn" onClick={onConfirm}>A: BEGIN</button>
-        <button className="sel-btn" onClick={onBack}>B: BACK</button>
+        <button className="sel-btn" onClick={onConfirm}>BEGIN</button>
+        <button className="sel-btn" onClick={onBack}>BACK</button>
       </div>
     </div>
   );
