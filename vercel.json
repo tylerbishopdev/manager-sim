@@ -1,0 +1,9 @@
+{
+  "installCommand": "cd mma-manager && pnpm install",
+  "buildCommand": "cd mma-manager && pnpm run build",
+  "outputDirectory": "mma-manager/dist",
+  "framework": null,
+  "rewrites": [
+    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+  ]
+}
