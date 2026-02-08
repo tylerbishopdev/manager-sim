@@ -1,13 +1,21 @@
 import { useState } from 'react';
 import type { Screen, ManagerCharacter } from './types';
+import { useGameStore } from './store/gameStore';
 import TitleScreen from './components/TitleScreen';
 import CharacterSelect from './components/CharacterSelect';
 import CharacterCreator from './components/CharacterCreator';
 import ConfirmScreen from './components/ConfirmScreen';
+import GameScreen from './components/game/GameScreen';
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('title');
   const [selectedManager, setSelectedManager] = useState<ManagerCharacter | null>(null);
+  const { gameStarted, startGame } = useGameStore();
+
+  // If game is running, render the gameplay
+  if (gameStarted) {
+    return <GameScreen />;
+  }
 
   const handleSelectPreset = (char: ManagerCharacter) => {
     setSelectedManager(char);
@@ -20,9 +28,9 @@ export default function App() {
   };
 
   const handleBegin = () => {
-    // TODO: transition to gameplay
-    console.log('Game starting with manager:', selectedManager);
-    alert(`Game starting with ${selectedManager?.name}!\n\n(Gameplay coming soon)`);
+    if (selectedManager) {
+      startGame(selectedManager);
+    }
   };
 
   switch (screen) {

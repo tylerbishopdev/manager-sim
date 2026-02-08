@@ -11,14 +11,9 @@ export interface CustomOptions {
 export interface ManagerCharacter {
   id: string;
   name: string;
-  title: string;          // short archetype label shown above portrait
   bio: string;
   preset: boolean;
   custom?: CustomOptions;
-  portraitBg: string;      // background colour behind portrait placeholder
-  accentColor: string;     // per-character accent for name / highlight
-  portrait?: string;       // path to illustrated portrait image (optional)
-  sprite?: string;         // path to small sprite image (optional)
   // Stats
   charisma: number;
   negotiation: number;

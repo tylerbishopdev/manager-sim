@@ -1,31 +1,11 @@
 import type { ManagerCharacter } from '../types';
 
-/**
- * ── HOW TO ADD CHARACTER ART ──
- *
- * 1. Drop portrait images into:  public/portraits/{id}.png
- *    (e.g. public/portraits/vince.png)
- *    Recommended: 480×600 or any 4:5 ratio, PNG or JPEG.
- *
- * 2. Drop sprite images into:    public/sprites/{id}.png
- *    (e.g. public/sprites/vince.png)
- *    Recommended: ~128×128, transparent PNG.
- *
- * The select screen will automatically pick them up.
- * While images are missing, a clean placeholder is shown.
- */
-
 export const presetManagers: ManagerCharacter[] = [
   {
     id: 'vince',
-    name: 'GOTH BRYAN',
-    title: 'THE ENFORCER',
-    bio: 'Leather and spikes. Vince ran underground fight circuits before going legit. Nobody crosses him twice.',
+    name: 'VINCE STEELE',
+    bio: 'Old-school promoter. Knows everyone in the game.',
     preset: true,
-    portraitBg: '#6a6480',
-    accentColor: '#c0b8d0',
-    portrait: '/portraits/vince.png',
-    sprite: '/sprites/vince.png',
     charisma: 6,
     negotiation: 9,
     scouting: 5,
@@ -33,14 +13,9 @@ export const presetManagers: ManagerCharacter[] = [
   },
   {
     id: 'maya',
-    name: 'THE BRIAN BROTHERS',
-    title: 'THE CREW',
-    bio: 'Street-smart duo who move as one. Maya calls the shots, Rico backs them up. Double the hustle.',
+    name: 'MAYA SANTOS',
+    bio: 'Former fighter turned sharp-eyed talent scout.',
     preset: true,
-    portraitBg: '#6a6480',
-    accentColor: '#f0d060',
-    portrait: '/portraits/maya.png',
-    sprite: '/sprites/maya.png',
     charisma: 7,
     negotiation: 6,
     scouting: 9,
@@ -48,14 +23,9 @@ export const presetManagers: ManagerCharacter[] = [
   },
   {
     id: 'dre',
-    name: 'LIL BRIAN',
-    title: 'THE HUSTLER',
-    bio: 'Gold chain, white hoodie, and a nose for talent. Dre turns nobodies into contenders.',
+    name: 'DRE JACKSON',
+    bio: 'Streetwise hustler with an eye for underdogs.',
     preset: true,
-    portraitBg: '#6a6480',
-    accentColor: '#f0d060',
-    portrait: '/portraits/dre.png',
-    sprite: '/sprites/dre.png',
     charisma: 9,
     negotiation: 7,
     scouting: 6,
@@ -63,14 +33,9 @@ export const presetManagers: ManagerCharacter[] = [
   },
   {
     id: 'yuki',
-    name: 'POST-OP BRIAN',
-    title: 'THE COACH',
-    bio: 'Old-school coach who screams louder than the crowd. His fighters fear him more than their opponents.',
+    name: 'YUKI TANAKA',
+    bio: 'Data-driven strategist from the Japanese circuit.',
     preset: true,
-    portraitBg: '#6a6480',
-    accentColor: '#88ccee',
-    portrait: '/portraits/yuki.png',
-    sprite: '/sprites/yuki.png',
     charisma: 5,
     negotiation: 8,
     scouting: 8,
@@ -78,14 +43,9 @@ export const presetManagers: ManagerCharacter[] = [
   },
   {
     id: 'elena',
-    name: 'BRIANNA',
-    title: 'THE HEIR',
-    bio: 'Boxing dynasty royalty branching into MMA. Glamorous, ruthless, and connected at every level.',
+    name: 'ELENA VOLKOV',
+    bio: 'Russian boxing dynasty heir branching into MMA.',
     preset: true,
-    portraitBg: '#6a6480',
-    accentColor: '#e8a080',
-    portrait: '/portraits/elena.png',
-    sprite: '/sprites/elena.png',
     charisma: 8,
     negotiation: 7,
     scouting: 5,
@@ -96,11 +56,8 @@ export const presetManagers: ManagerCharacter[] = [
 export const defaultCustom: ManagerCharacter = {
   id: 'custom',
   name: 'YOUR MANAGER',
-  title: 'THE UNKNOWN',
   bio: 'Write your own story.',
   preset: false,
-  portraitBg: '#333',
-  accentColor: '#d4a017',
   custom: { skinTone: 0, eyeShape: 0, facialHair: 0, hat: 0, style: 0 },
   charisma: 7,
   negotiation: 7,
