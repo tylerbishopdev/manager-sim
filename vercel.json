@@ -1,0 +1,9 @@
+{
+  "installCommand": "cd mma-manager && npm install",
+  "buildCommand": "cd mma-manager && npm run build",
+  "outputDirectory": "mma-manager/dist",
+  "framework": null,
+  "rewrites": [
+    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+  ]
+}
