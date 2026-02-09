@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { simulateFight } from '../../services/fightSim';
-import type { FightOutcome, FightRoundEvent } from '../../types/gameplay';
+import type { FightOutcome, FightRoundEvent, ScheduledFight, Fighter } from '../../types/gameplay';
 
 export default function FightScreen() {
   const { gameState, setScreen } = useGameStore();
@@ -23,7 +23,7 @@ export default function FightScreen() {
   return <FightSimulation fight={todaysFight} fighter={fighter} />;
 }
 
-function FightSimulation({ fight, fighter }: { fight: any; fighter: any }) {
+function FightSimulation({ fight, fighter }: { fight: ScheduledFight; fighter: Fighter }) {
   const { setScreen, recordFight, updateFighter } = useGameStore();
 
   const [phase, setPhase] = useState<'intro' | 'fighting' | 'result'>('intro');
