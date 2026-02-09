@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { generateFighter } from '../../services/fighterGen';
 import StatBar from '../StatBar';

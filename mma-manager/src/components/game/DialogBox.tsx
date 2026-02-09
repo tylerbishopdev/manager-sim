@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useGameStore } from '../../store/gameStore';
 
 export default function DialogBox() {
-  const { gameState, popDialog, setScreen, updateGameState, addMoney } = useGameStore();
+  const { gameState, popDialog, setScreen } = useGameStore();
   if (!gameState || gameState.dialogQueue.length === 0) return null;
 
   const msg = gameState.dialogQueue[0];

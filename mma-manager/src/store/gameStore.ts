@@ -1,15 +1,15 @@
 import { create } from 'zustand';
 import type { ManagerCharacter } from '../types';
 import type {
-  GameState, GameScreen, Fighter, ScheduledFight, SponsorDeal,
-  GameEvent, DialogMessage, WorldState, GymState, MapId, FightOutcome,
+  GameState, GameScreen, Fighter, ScheduledFight,
+  DialogMessage, WorldState, MapId, FightOutcome,
 } from '../types/gameplay';
 import { GYM_UPGRADES } from '../types/gameplay';
 import { generateFighter } from '../services/fighterGen';
 
 // ── Initial State Factory ────────────────────────────────
 
-function createInitialState(manager: ManagerCharacter): GameState {
+function createInitialState(_manager: ManagerCharacter): GameState {
   const starterFighter = generateFighter({
     tier: 'scrub',
     forceWeightClass: 'lightweight',

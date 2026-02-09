@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { simulateFight } from '../../services/fightSim';
-import type { FightOutcome, FightRound, FightRoundEvent } from '../../types/gameplay';
-import StatBar from '../StatBar';
+import type { FightOutcome, FightRoundEvent } from '../../types/gameplay';
 
 export default function FightScreen() {
-  const { gameState, setScreen, recordFight, updateFighter, pushDialog } = useGameStore();
+  const { gameState, setScreen } = useGameStore();
   if (!gameState) return null;
 
   const todaysFight = gameState.schedule.find((f) => f.day <= gameState.day);
@@ -34,7 +33,7 @@ function FightSimulation({ fight, fighter }: { fight: any; fighter: any }) {
   const [f1Hp, setF1Hp] = useState(100);
   const [f2Hp, setF2Hp] = useState(100);
   const eventIdx = useRef(0);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
 
   const startFight = () => {
@@ -67,7 +66,7 @@ function FightSimulation({ fight, fighter }: { fight: any; fighter: any }) {
     let idx = 0;
     timerRef.current = setInterval(() => {
       if (idx >= round.events.length) {
-        clearInterval(timerRef.current);
+        if (timerRef.current) clearInterval(timerRef.current);
         // Update HP at end of round
         setF1Hp(round.f1HpEnd);
         setF2Hp(round.f2HpEnd);

@@ -1,9 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { generateOpponent } from '../../services/fighterGen';
 import { VENUE_NAMES } from '../../data/fighterNames';
-import StatBar from '../StatBar';
-import type { ScheduledFight, Fighter } from '../../types/gameplay';
+import type { ScheduledFight } from '../../types/gameplay';
 
 function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
 function rng(min: number, max: number) { return Math.floor(Math.random() * (max - min + 1)) + min; }

@@ -11,9 +11,14 @@ export interface CustomOptions {
 export interface ManagerCharacter {
   id: string;
   name: string;
+  title: string;
   bio: string;
   preset: boolean;
   custom?: CustomOptions;
+  portraitBg: string;
+  accentColor: string;
+  portrait?: string;
+  sprite?: string;
   // Stats
   charisma: number;
   negotiation: number;
