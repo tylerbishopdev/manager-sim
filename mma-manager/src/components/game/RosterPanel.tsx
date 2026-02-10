@@ -17,7 +17,7 @@ export default function RosterPanel() {
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ fontSize: 14, color: '#d4a017', letterSpacing: 4 }}>ROSTER</h2>
-        <button className="btn-outline" onClick={() => setScreen('overworld')}>✕ CLOSE</button>
+        <button className="btn-outline" onClick={() => setScreen('overworld')}>◀ BACK</button>
       </div>
 
       <div style={{

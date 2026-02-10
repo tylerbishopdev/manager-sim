@@ -1,18 +1,27 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useGameStore } from '../../store/gameStore';
 
 export default function DialogBox() {
-  const { gameState, popDialog, setScreen } = useGameStore();
-  if (!gameState || gameState.dialogQueue.length === 0) return null;
+  const { gameState, popDialog, setScreen, pushDialog, spendMoney, updateFighter, upgradeGym, hireStaff } = useGameStore();
 
-  const msg = gameState.dialogQueue[0];
+  const msg = gameState && gameState.dialogQueue.length > 0 ? gameState.dialogQueue[0] : null;
 
-  const handleChoice = (action: string) => {
+  const handleChoice = useCallback((action: string) => {
     popDialog();
 
+    // ── Screen navigation ──
+    if (action.startsWith('screen:')) {
+      const target = action.replace('screen:', '');
+      setScreen(target as any);
+      return;
+    }
+
     switch (action) {
+      case 'dismiss':
       case 'close':
         break;
+
+      // ── Screen opens ──
       case 'open_roster':
         setScreen('roster');
         break;
@@ -28,12 +37,51 @@ export default function DialogBox() {
       case 'start_fight':
         setScreen('prefight');
         break;
+      case 'open_gym': {
+        // Re-trigger gym management from hub
+        // (This is handled by HubScreen.openGymManagement but we need a fallback)
+        const store = useGameStore.getState();
+        const gs = store.gameState;
+        if (gs) {
+          store.pushDialog({
+            speaker: 'GYM',
+            text: `Level ${gs.gym.level} gym. Equipment: ${gs.gym.equipment}%. What do you want to do?`,
+            choices: [
+              { label: 'Back', action: 'dismiss' },
+            ],
+          });
+        }
+        break;
+      }
+
+      // ── Day advancement ──
       case 'advance_day': {
         const store = useGameStore.getState();
         store.advanceDay();
-        store.pushDialog({ speaker: 'SYSTEM', text: `Day ${(store.gameState?.day ?? 0)} begins. Time to grind.` });
+        const gs = store.gameState;
+        if (gs) {
+          const todaysFight = gs.schedule.find((f) => f.day <= gs.day);
+          if (todaysFight) {
+            const fname = gs.fighters.find((f) => f.id === todaysFight.fighterId)?.name ?? 'Your fighter';
+            store.pushDialog({
+              speaker: '📢 FIGHT DAY',
+              text: `${fname} vs ${todaysFight.opponent.name}! Head to the arena!`,
+              choices: [
+                { label: "LET'S GO!", action: 'start_fight' },
+                { label: 'Not yet', action: 'dismiss' },
+              ],
+            });
+          } else {
+            store.pushDialog({
+              speaker: 'MORNING',
+              text: `Day ${gs.day} begins. You have $${gs.money.toLocaleString()}.${gs.money < 1000 ? " Funds are getting low..." : ""}`,
+            });
+          }
+        }
         break;
       }
+
+      // ── Save/Load ──
       case 'save_game':
         if (gameState) {
           try {
@@ -41,12 +89,14 @@ export default function DialogBox() {
               manager: useGameStore.getState().manager,
               gameState,
             }));
-            useGameStore.getState().pushDialog({ speaker: 'SYSTEM', text: 'Game saved!' });
+            pushDialog({ speaker: 'SYSTEM', text: 'Game saved!' });
           } catch {
-            useGameStore.getState().pushDialog({ speaker: 'SYSTEM', text: 'Save failed!' });
+            pushDialog({ speaker: 'SYSTEM', text: 'Save failed!' });
           }
         }
         break;
+
+      // ── Training ──
       case 'train_striking':
       case 'train_grappling':
       case 'train_conditioning': {
@@ -54,44 +104,106 @@ export default function DialogBox() {
         const store = useGameStore.getState();
         const gs = store.gameState;
         if (!gs || gs.fighters.length === 0) break;
+
         const cost = 200;
         if (gs.money < cost) {
-          store.pushDialog({ speaker: 'TRAINER', text: `You need $${cost}. You're broke, boss.` });
+          store.pushDialog({ speaker: 'TRAINER', text: `You need $${cost} for a training session. You're short, boss.` });
           break;
         }
-        const fighter = gs.fighters[0]; // Train first fighter for now
-        const success = Math.random() < 0.7;
-        store.spendMoney(cost);
-        if (success && fighter.stats[stat] < 10) {
-          store.updateFighter(fighter.id, {
-            stats: { ...fighter.stats, [stat]: Math.min(10, fighter.stats[stat] + 1) },
+
+        const fighter = gs.fighters[0]; // TODO: allow picking fighter
+        const hasTrainer = gs.gym.staff.trainer;
+        const successChance = hasTrainer ? 0.85 : 0.65;
+        const success = Math.random() < successChance;
+
+        spendMoney(cost);
+
+        if (success && fighter.stats[stat] < fighter.potential[stat]) {
+          const gain = hasTrainer ? 0.5 : 0.3;
+          updateFighter(fighter.id, {
+            stats: { ...fighter.stats, [stat]: Math.min(10, +(fighter.stats[stat] + gain).toFixed(1)) },
             morale: Math.min(100, fighter.morale + 5),
           });
+          const newVal = Math.min(10, +(fighter.stats[stat] + gain).toFixed(1));
           store.pushDialog({
             speaker: 'TRAINER',
-            text: `${fighter.name.split('"')[0]} improved their ${stat}! ($${cost})`,
+            text: `Great session! ${fighter.name}'s ${stat} improved to ${newVal}. ($${cost})${hasTrainer ? " Your trainer pushed them hard." : ""}`,
+            choices: [
+              { label: 'Train again', action: action },
+              { label: 'Done', action: 'dismiss' },
+            ],
+          });
+        } else if (fighter.stats[stat] >= fighter.potential[stat]) {
+          store.pushDialog({
+            speaker: 'TRAINER',
+            text: `${fighter.name} has hit their ceiling in ${stat}. They need fight experience to break through. ($${cost})`,
           });
         } else {
-          store.updateFighter(fighter.id, {
-            morale: Math.max(0, fighter.morale - 3),
-          });
+          updateFighter(fighter.id, { morale: Math.max(0, fighter.morale - 3) });
           store.pushDialog({
             speaker: 'TRAINER',
-            text: success
-              ? `${stat} is already maxed out!`
-              : `Rough session. No improvement today. ($${cost})`,
+            text: `Tough session. No improvement today. ${fighter.name} is frustrated. ($${cost})`,
+            choices: [
+              { label: 'Try again', action: action },
+              { label: "That's enough", action: 'dismiss' },
+            ],
           });
         }
         break;
       }
-      default:
-        console.log('Unhandled action:', action);
-    }
-  };
 
-  // Auto-dismiss simple messages with Enter/Space/E
+      // ── Gym upgrade ──
+      case 'upgrade_gym': {
+        const success = upgradeGym();
+        const store = useGameStore.getState();
+        if (success) {
+          const gs = store.gameState;
+          const label = gs ? (GYM_UPGRADES_MAP[gs.gym.level] ?? 'Upgraded') : 'Upgraded';
+          store.pushDialog({
+            speaker: 'CONTRACTOR',
+            text: `Gym upgraded to "${label}"! More roster slots, better equipment. Time to grow.`,
+          });
+        } else {
+          store.pushDialog({
+            speaker: 'CONTRACTOR',
+            text: "Can't upgrade right now. Either you're maxed out or you can't afford it.",
+          });
+        }
+        break;
+      }
+
+      // ── Staff hiring ──
+      case 'hire_trainer':
+      case 'hire_cutman':
+      case 'hire_nutritionist':
+      case 'hire_scout': {
+        const role = action.replace('hire_', '') as 'trainer' | 'cutman' | 'nutritionist' | 'scout';
+        const success = hireStaff(role);
+        const store = useGameStore.getState();
+        if (success) {
+          const msgs: Record<string, string> = {
+            trainer: "New trainer on board! Training sessions will be more effective.",
+            cutman: "Cutman hired! Your fighters will recover faster from fight injuries.",
+            nutritionist: "Nutritionist hired! Fighters heal faster between days.",
+            scout: "Scout hired! You'll see better talent in the scouting pool.",
+          };
+          store.pushDialog({ speaker: 'NEW HIRE', text: msgs[role] ?? 'Staff member hired!' });
+        } else {
+          store.pushDialog({ speaker: 'FRONT DESK', text: "Can't hire right now. Already hired or insufficient funds." });
+        }
+        break;
+      }
+
+      default:
+        if (action !== '') {
+          console.warn('Unhandled dialog action:', action);
+        }
+    }
+  }, [gameState, popDialog, setScreen, pushDialog, spendMoney, updateFighter, upgradeGym, hireStaff]);
+
+  // Auto-dismiss simple messages with Enter/Space/tap
   useEffect(() => {
-    if (msg.choices && msg.choices.length > 0) return;
+    if (!msg || (msg.choices && msg.choices.length > 0)) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Enter' || e.key === ' ' || e.key === 'e' || e.key === 'E') {
         popDialog();
@@ -101,70 +213,48 @@ export default function DialogBox() {
     return () => window.removeEventListener('keydown', handler);
   }, [msg, popDialog]);
 
+  if (!msg) return null;
+
   return (
-    <div style={{
-      position: 'fixed',
-      bottom: 24, left: '50%', transform: 'translateX(-50%)',
-      width: 'min(90vw, 600px)',
-      background: 'rgba(10, 10, 26, 0.95)',
-      border: '3px solid #d4a017',
-      padding: 16,
-      zIndex: 50,
-      fontFamily: '"Press Start 2P", monospace',
-    }}>
-      {/* Speaker */}
-      {msg.speaker && (
-        <div style={{
-          fontSize: 9, color: '#d4a017', marginBottom: 8, letterSpacing: 2,
-        }}>
-          {msg.speaker}
-        </div>
-      )}
+    <div
+      className="dialog-overlay"
+      onClick={(!msg.choices || msg.choices.length === 0) ? () => popDialog() : undefined}
+    >
+      <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
+        {/* Speaker */}
+        {msg.speaker && (
+          <div className="dialog-speaker">{msg.speaker}</div>
+        )}
 
-      {/* Text */}
-      <div style={{ fontSize: 10, color: '#ddd', lineHeight: 1.8, marginBottom: msg.choices ? 12 : 0 }}>
-        {msg.text}
+        {/* Text */}
+        <div className="dialog-text">{msg.text}</div>
+
+        {/* Choices */}
+        {msg.choices && msg.choices.length > 0 && (
+          <div className="dialog-choices">
+            {msg.choices.map((choice, i) => (
+              <button
+                key={i}
+                className="dialog-choice"
+                onClick={() => handleChoice(choice.action)}
+              >
+                ▸ {choice.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Dismiss hint */}
+        {(!msg.choices || msg.choices.length === 0) && (
+          <div className="dialog-dismiss">TAP OR PRESS ENTER</div>
+        )}
       </div>
-
-      {/* Choices */}
-      {msg.choices && msg.choices.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {msg.choices.map((choice, i) => (
-            <button
-              key={i}
-              onClick={() => handleChoice(choice.action)}
-              style={{
-                background: 'transparent',
-                border: '2px solid #444',
-                color: '#aaa',
-                fontFamily: 'inherit',
-                fontSize: 9,
-                padding: '8px 12px',
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.15s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#d4a017';
-                e.currentTarget.style.color = '#f0d060';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#444';
-                e.currentTarget.style.color = '#aaa';
-              }}
-            >
-              ▸ {choice.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Dismiss hint for simple messages */}
-      {(!msg.choices || msg.choices.length === 0) && (
-        <div style={{ fontSize: 7, color: '#555', marginTop: 8, textAlign: 'center' }}>
-          PRESS ENTER TO CONTINUE
-        </div>
-      )}
     </div>
   );
 }
+
+// Quick lookup for gym level labels
+import { GYM_UPGRADES } from '../../types/gameplay';
+const GYM_UPGRADES_MAP: Record<number, string> = Object.fromEntries(
+  GYM_UPGRADES.map((u) => [u.level, u.label])
+);

@@ -24,7 +24,7 @@ export default function FinancePanel() {
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ fontSize: 14, color: '#d4a017', letterSpacing: 4 }}>FINANCES</h2>
-        <button className="btn-outline" onClick={() => setScreen('overworld')}>✕ CLOSE</button>
+        <button className="btn-outline" onClick={() => setScreen('overworld')}>◀ BACK</button>
       </div>
 
       <div style={{ width: 200, height: 1, marginBottom: 20, background: 'linear-gradient(90deg, #d4a017, transparent)' }} />

@@ -89,7 +89,15 @@ function createInitialState(_manager: ManagerCharacter): GameState {
       npcPositions: {},
     },
     activeScreen: 'overworld',
-    dialogQueue: [],
+    dialogQueue: [
+      {
+        speaker: 'WELCOME',
+        text: `Welcome to your gym! You've got $5,000, one scrappy fighter, and a dream. Time to build an empire.`,
+        choices: [
+          { label: "Let's get to work", action: 'dismiss' },
+        ],
+      },
+    ],
 
     championsWon: 0,
     fightHistory: [],

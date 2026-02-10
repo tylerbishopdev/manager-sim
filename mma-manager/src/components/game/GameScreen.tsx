@@ -1,6 +1,5 @@
 import { useGameStore } from '../../store/gameStore';
-import OverworldCanvas from './OverworldCanvas';
-import GameHUD from './GameHUD';
+import HubScreen from './HubScreen';
 import DialogBox from './DialogBox';
 import RosterPanel from './RosterPanel';
 import FinancePanel from './FinancePanel';
@@ -8,7 +7,7 @@ import ScoutPanel from './ScoutPanel';
 import ContractPanel from './ContractPanel';
 import FightScreen from './FightScreen';
 
-/** Root gameplay component — renders overworld + overlays based on activeScreen */
+/** Root gameplay component — renders hub + overlay panels + dialog */
 export default function GameScreen() {
   const { gameState } = useGameStore();
   if (!gameState) return null;
@@ -16,10 +15,9 @@ export default function GameScreen() {
   const screen = gameState.activeScreen;
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      {/* Overworld always renders underneath */}
-      <OverworldCanvas />
-      <GameHUD />
+    <div style={{ width: '100vw', height: '100dvh', position: 'relative' }}>
+      {/* Hub always renders underneath */}
+      <HubScreen />
 
       {/* Overlay panels */}
       {screen === 'roster' && <RosterPanel />}
