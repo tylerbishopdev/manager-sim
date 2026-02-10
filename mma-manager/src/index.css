@@ -916,8 +916,8 @@ button, [role="button"], .menu-item, .sel-card, .create-thumb {
   object-position: bottom center;
   z-index: 3;
   pointer-events: none;
-  /* Blend away the black bg of the desk asset */
-  mix-blend-mode: lighten;
+  /* Screen blend mode removes pure black bg */
+  mix-blend-mode: screen;
 }
 
 /* Warm vignette + darkened edges over the whole scene */
@@ -954,9 +954,8 @@ button, [role="button"], .menu-item, .sel-card, .create-thumb {
   object-fit: contain;
   object-position: bottom center;
   image-rendering: auto;
-  filter: drop-shadow(0 4px 16px rgba(0,0,0,0.5));
-  /* Blend away the black background of the sprite PNGs */
-  mix-blend-mode: lighten;
+  /* Screen blend mode removes pure black bg while keeping character colors */
+  mix-blend-mode: screen;
 }
 
 .hub-character-placeholder {
@@ -1297,86 +1296,157 @@ button, [role="button"], .menu-item, .sel-card, .create-thumb {
     flex-direction: column;
   }
 
+  /* ── Office: compact banner strip at top ── */
   .hub-office {
-    flex: 0 0 35%;
-    min-height: 180px;
+    flex: 0 0 auto;
+    height: 28dvh;
+    min-height: 120px;
+    max-height: 200px;
   }
 
-  .hub-character { bottom: 10%; width: 55%; }
-  .hub-character-img { max-height: 50dvh; }
-  .hub-character-silhouette { font-size: 36px; }
-  .hub-desk-fg { max-height: 45%; }
+  .hub-office-bg { object-position: center 35%; }
+
+  .hub-character { bottom: 0; width: 40%; max-width: 200px; }
+  .hub-character-img { max-height: 26dvh; }
+  .hub-character-silhouette { font-size: 32px; }
+  .hub-desk-fg { max-height: 50%; }
 
   .hub-hud {
-    top: 8px;
-    left: 8px;
-    padding: 6px 10px;
-    gap: 4px;
-    min-width: 150px;
+    top: 6px;
+    left: 6px;
+    padding: 5px 8px;
+    gap: 3px;
+    min-width: 0;
+    width: auto;
+    max-width: 55%;
   }
 
-  .hub-hud-label { font-size: 5px; width: 36px; }
-  .hub-hud-bar { height: 8px; min-width: 60px; }
-  .hub-hud-value { font-size: 5px; min-width: 36px; }
+  .hub-hud-label { font-size: 5px; width: 32px; }
+  .hub-hud-bar { height: 7px; min-width: 50px; }
+  .hub-hud-value { font-size: 5px; min-width: 32px; }
 
   .hub-day-badge {
-    bottom: 8px;
-    left: 8px;
-    font-size: 6px;
-    padding: 4px 8px;
+    bottom: 6px;
+    left: 6px;
+    font-size: 5px;
+    padding: 3px 6px;
   }
 
+  /* ── Phone: drop the bezel, go full-width ── */
   .hub-phone-area {
     flex: 1 1 auto;
-    padding: 8px;
-    justify-content: flex-start;
+    padding: 0;
+    justify-content: stretch;
+    min-height: 0;
   }
 
   .hub-phone {
     width: 100%;
-    max-width: 340px;
-    border-radius: 20px;
-    padding: 6px;
+    max-width: none;
+    border-radius: 0;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
   }
 
+  .phone-notch { display: none; }
+
   .phone-screen {
-    border-radius: 14px;
+    border-radius: 0;
+    background: linear-gradient(180deg, #111828 0%, #0c1420 100%);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .phone-statusbar {
+    padding: 6px 16px 2px;
+    font-size: 6px;
   }
 
   .phone-menu-title {
-    font-size: 11px;
+    font-size: 12px;
     padding: 6px 0 8px;
+    letter-spacing: 3px;
   }
 
+  /* ── Grid: bigger buttons, fill the space ── */
   .phone-grid {
-    gap: 6px;
-    padding: 0 10px;
+    flex: 1 1 auto;
+    gap: 8px;
+    padding: 0 12px;
+    align-content: center;
   }
 
   .phone-btn {
-    padding: 8px 2px 6px;
+    padding: 12px 4px 10px;
+    border-radius: 10px;
+    gap: 5px;
+  }
+
+  .phone-btn-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 20px;
     border-radius: 8px;
   }
 
-  .phone-btn-icon { width: 32px; height: 32px; font-size: 18px; border-radius: 6px; }
-  .phone-btn-label { font-size: 5px; }
-
-  .phone-nav { padding: 8px 0 6px; gap: 6px; }
-  .phone-home-btn { width: 80px; height: 28px; }
-  .phone-statusbar { padding: 6px 10px 2px; }
-}
-
-@media (max-width: 480px) {
-  .hub-office {
-    flex: 0 0 28%;
-    min-height: 140px;
+  .phone-btn-label {
+    font-size: 6px;
+    letter-spacing: 1px;
   }
 
-  .hub-hud { min-width: 130px; }
-  .hub-hud-bar { min-width: 50px; }
-  .hub-character { bottom: 8%; width: 50%; }
-  .hub-character-silhouette { font-size: 28px; }
-  .hub-desk-fg { max-height: 40%; }
+  .phone-btn-icon--text { font-size: 11px; }
+
+  /* ── Bottom nav: full-width action bar ── */
+  .phone-nav {
+    padding: 8px 16px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .phone-dots { display: none; }
+
+  .phone-home-btn {
+    width: 100%;
+    height: 40px;
+    border-radius: 8px;
+    background: rgba(212, 160, 23, 0.12);
+    border-color: var(--gold);
+  }
+
+  .phone-home-icon { color: var(--gold); }
+  .phone-home-label { color: var(--gold); font-size: 7px; letter-spacing: 2px; }
+
+  .hub-fight-countdown {
+    margin-top: 6px;
+    font-size: 6px;
+  }
+}
+
+/* ── Extra small phones ── */
+@media (max-width: 380px) {
+  .hub-office {
+    height: 22dvh;
+    min-height: 100px;
+    max-height: 150px;
+  }
+
+  .hub-character { width: 35%; }
+  .hub-character-img { max-height: 20dvh; }
+
+  .hub-hud { padding: 4px 6px; gap: 2px; }
+  .hub-hud-label { font-size: 4px; width: 28px; }
+  .hub-hud-bar { height: 6px; min-width: 40px; }
+  .hub-hud-value { font-size: 4px; min-width: 28px; }
+
+  .phone-btn-icon { width: 32px; height: 32px; font-size: 18px; }
+  .phone-btn-label { font-size: 5px; }
+  .phone-grid { gap: 6px; padding: 0 8px; }
 }
 
 
