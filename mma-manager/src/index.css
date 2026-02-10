@@ -401,7 +401,7 @@ button, [role="button"], .menu-item, .sel-card, .create-thumb {
 
   .sel-title {
     padding: 16px 0 12px;
-    font-size: 14px;
+    font-size: 12px;
   }
 
   /* Hide desktop row */
@@ -948,7 +948,7 @@ button, [role="button"], .menu-item, .sel-card, .create-thumb {
   justify-content: center;
 }
 
-/* Layer 1: Office wall / background */
+/* Office background (fallback for custom characters) */
 .hub-office-bg {
   position: absolute;
   inset: 0;
@@ -959,20 +959,16 @@ button, [role="button"], .menu-item, .sel-card, .create-thumb {
   z-index: 0;
 }
 
-/* Layer 3: Desk foreground (on top of character) */
-.hub-desk-fg {
+/* Combo SVG: pre-composited desk + character scene */
+.hub-combo-bg {
   position: absolute;
-  bottom: 0;
-  left: 0;
+  inset: 0;
   width: 100%;
-  height: auto;
-  max-height: 55%;
+  height: 100%;
   object-fit: contain;
-  object-position: bottom center;
-  z-index: 3;
-  pointer-events: none;
-  /* Screen blend mode removes pure black bg */
-  mix-blend-mode: screen;
+  object-position: center bottom;
+  z-index: 0;
+  background: #0a0a0f;
 }
 
 /* Warm vignette + darkened edges over the whole scene */
@@ -1009,8 +1005,6 @@ button, [role="button"], .menu-item, .sel-card, .create-thumb {
   object-fit: contain;
   object-position: bottom center;
   image-rendering: auto;
-  /* Screen blend mode removes pure black bg while keeping character colors */
-  mix-blend-mode: screen;
 }
 
 .hub-character-placeholder {

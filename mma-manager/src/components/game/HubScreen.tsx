@@ -193,32 +193,21 @@ export default function HubScreen() {
     <div className="hub-root">
       {/* ── LEFT: Office backdrop + HUD overlay ── */}
       <div className="hub-office">
-        {/* Layer 1 (back): Wall / upper office scene */}
-        <img src="/bg/office.png" alt="" className="hub-office-bg" />
-
-        {/* Layer 2 (middle): Manager character sprite */}
-        <div className="hub-character">
-          {manager.sprite ? (
-            <img
-              src={manager.sprite}
-              alt={manager.name}
-              className="hub-character-img"
-            />
-          ) : manager.portrait ? (
-            <img
-              src={manager.portrait}
-              alt={manager.name}
-              className="hub-character-img"
-            />
-          ) : (
-            <div className="hub-character-placeholder">
-              <div className="hub-character-silhouette">👤</div>
-            </div>
-          )}
-        </div>
-
-        {/* Layer 3 (front): Desk foreground — character appears seated behind it */}
-        <img src="/bg/desk.png" alt="" className="hub-desk-fg" />
+        {/* Combo SVG: desk + character pre-composited (no blend hacks needed) */}
+        {manager.preset && manager.id ? (
+          <img
+            src={`/bg/combo-${manager.id}.svg`}
+            alt=""
+            className="hub-combo-bg"
+            onError={(e) => {
+              // Fallback to old office.png if combo doesn't exist
+              (e.target as HTMLImageElement).src = '/bg/office.png';
+              (e.target as HTMLImageElement).className = 'hub-office-bg';
+            }}
+          />
+        ) : (
+          <img src="/bg/office.png" alt="" className="hub-office-bg" />
+        )}
 
         {/* ── HUD overlay (top-left) ── */}
         <div className="hub-hud">
