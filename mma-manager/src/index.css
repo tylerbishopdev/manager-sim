@@ -243,7 +243,8 @@ button, [role="button"], .menu-item, .sel-card, .create-thumb {
   gap: 16px;
   padding: 0 24px 12px;
   min-height: 0;
-  max-width: 1100px;
+  max-width: 128000px;
+  aspect-ratio: square;
   width: 100%;
 }
 
