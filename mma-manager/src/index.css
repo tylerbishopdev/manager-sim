@@ -868,109 +868,514 @@ button, [role="button"], .menu-item, .sel-card, .create-thumb {
 
 
 /* ═══════════════════════════════════════════════════════════
-   HUB SCREEN — Management sim hub replacing canvas overworld
+   HUB SCREEN — Two-panel: office backdrop (left) + phone menu (right)
    ═══════════════════════════════════════════════════════════ */
 
-.hub-screen {
+.hub-root {
   width: 100vw;
   height: 100vh;
   height: 100dvh;
   display: flex;
-  flex-direction: column;
-  background: radial-gradient(ellipse at top, #162450 0%, #080e20 80%);
+  background: #0a0a0f;
   font-family: 'Press Start 2P', monospace;
   overflow: hidden;
+  position: relative;
 }
 
-.hub-header {
-  flex-shrink: 0;
+/* ── LEFT PANEL: Office Scene ── */
+.hub-office {
+  flex: 1 1 60%;
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  background: rgba(0,0,0,0.4);
-  border-bottom: 2px solid #1a2a50;
+  justify-content: center;
 }
 
-.hub-manager-name { font-size: 10px; color: var(--gold); letter-spacing: 2px; }
-.hub-day { font-size: 8px; color: #778; letter-spacing: 1px; }
-.hub-money { font-size: 11px; color: #4ade80; letter-spacing: 1px; }
-.hub-money.negative { color: #ef4444; }
+/* Layer 1: Office wall / background */
+.hub-office-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+  z-index: 0;
+}
 
-.hub-status {
-  flex-shrink: 0;
+/* Layer 3: Desk foreground (on top of character) */
+.hub-desk-fg {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: auto;
+  max-height: 55%;
+  object-fit: contain;
+  object-position: bottom center;
+  z-index: 3;
+  pointer-events: none;
+  /* Blend away the black bg of the desk asset */
+  mix-blend-mode: lighten;
+}
+
+/* Warm vignette + darkened edges over the whole scene */
+.hub-office::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 40% 50%, rgba(120, 80, 30, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.4) 100%);
+  z-index: 4;
+  pointer-events: none;
+}
+
+/* Layer 2: Manager character — sits between bg and desk */
+.hub-character {
+  position: absolute;
+  bottom: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
   display: flex;
-  gap: 12px;
-  padding: 8px 20px;
-  font-size: 7px;
-  color: #556;
-  letter-spacing: 1px;
-  flex-wrap: wrap;
-  border-bottom: 1px solid #1a2a50;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+  width: 60%;
+  max-width: 400px;
 }
 
-.hub-fight-countdown { color: #f0d060; animation: pulse 2s infinite; }
-
-.hub-actions {
-  flex: 1 1 auto;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 10px;
-  padding: 16px 20px;
-  overflow-y: auto;
-  align-content: start;
+.hub-character-img {
+  width: 100%;
+  height: auto;
+  max-height: 70dvh;
+  object-fit: contain;
+  object-position: bottom center;
+  image-rendering: auto;
+  filter: drop-shadow(0 4px 16px rgba(0,0,0,0.5));
+  /* Blend away the black background of the sprite PNGs */
+  mix-blend-mode: lighten;
 }
 
-.hub-btn {
-  background: rgba(15, 26, 56, 0.9);
-  border: 3px solid #2a3a60;
-  padding: 16px 14px;
-  cursor: pointer;
+.hub-character-placeholder {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  transition: all 0.15s;
-  font-family: inherit;
-  text-align: left;
+  align-items: center;
+  gap: 8px;
 }
 
-.hub-btn:hover {
+.hub-character-silhouette {
+  font-size: 60px;
+  opacity: 0.12;
+  filter: grayscale(1);
+}
+
+/* ── HUD OVERLAY (top-left of office) ── */
+.hub-hud {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.65);
+  padding: 10px 14px;
+  border: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(4px);
+  min-width: 180px;
+}
+
+.hub-hud-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hub-hud-label {
+  font-size: 6px;
+  color: #aaa;
+  letter-spacing: 1px;
+  width: 50px;
+  flex-shrink: 0;
+  line-height: 1.3;
+}
+
+.hub-hud-bar {
+  flex: 1;
+  height: 10px;
+  background: #1a1a24;
+  border: 1px solid #333;
+  position: relative;
+  overflow: hidden;
+  min-width: 80px;
+}
+
+.hub-hud-fill {
+  height: 100%;
+  transition: width 0.5s ease;
+}
+
+.hub-hud-fill--money {
+  background: linear-gradient(90deg, #22a845, #4ade80);
+}
+
+.hub-hud-fill--morale {
+  background: linear-gradient(90deg,
+    #4488ff 0%,
+    #7744cc 30%,
+    #cc44aa 60%,
+    #ffaa33 80%,
+    #ff5577 100%
+  );
+}
+
+.hub-hud-fill--rep {
+  background: linear-gradient(90deg, #c0392b, #e74c3c);
+}
+
+.hub-hud-value {
+  font-size: 6px;
+  color: #4ade80;
+  letter-spacing: 1px;
+  min-width: 44px;
+  text-align: right;
+}
+
+.hub-hud-alert {
+  font-size: 10px;
+  color: #e74c3c;
+  font-weight: bold;
+  animation: pulse 1.5s infinite;
+  min-width: 12px;
+  text-align: center;
+}
+
+/* Day badge (bottom-left of office) */
+.hub-day-badge {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  z-index: 10;
+  font-size: 7px;
+  color: #667;
+  letter-spacing: 2px;
+  background: rgba(0,0,0,0.5);
+  padding: 6px 12px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+
+/* ═══════════════════════════════════════════
+   RIGHT PANEL: Phone Interface
+   ═══════════════════════════════════════════ */
+
+.hub-phone-area {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 5;
+}
+
+.hub-phone {
+  width: 260px;
+  background: linear-gradient(160deg, #3a3a44, #1e1e28, #2a2a34);
+  border-radius: 28px;
+  padding: 8px;
+  box-shadow:
+    0 0 0 2px #555,
+    0 0 0 4px #222,
+    0 8px 32px rgba(0,0,0,0.7),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+  position: relative;
+}
+
+.phone-notch {
+  width: 80px;
+  height: 6px;
+  background: #111;
+  border-radius: 4px;
+  margin: 4px auto 6px;
+}
+
+.phone-screen {
+  background: linear-gradient(180deg, #1a2a4a 0%, #0e1830 30%, #0c1428 100%);
+  border-radius: 18px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Status bar */
+.phone-statusbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px 4px;
+  font-size: 6px;
+  color: #7788aa;
+  letter-spacing: 1px;
+}
+
+.phone-carrier { opacity: 0.7; }
+.phone-time { font-weight: bold; color: #99aacc; }
+
+/* Menu title */
+.phone-menu-title {
+  font-size: 14px;
+  color: #c8d8f0;
+  letter-spacing: 4px;
+  text-align: center;
+  padding: 10px 0 12px;
+  text-shadow: 0 2px 0 rgba(0,0,0,0.5);
+}
+
+/* 3x3 Grid */
+.phone-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 0 14px;
+}
+
+.phone-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px 8px;
+  background: rgba(20, 30, 60, 0.8);
+  border: 2px solid #2a3a5a;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  font-family: inherit;
+}
+
+.phone-btn:hover {
   border-color: #4a6a9a;
-  background: rgba(20, 35, 70, 0.95);
+  background: rgba(30, 45, 80, 0.95);
   transform: translateY(-1px);
 }
 
-.hub-btn:active { transform: translateY(0); }
+.phone-btn:active {
+  transform: scale(0.94);
+  background: rgba(40, 55, 90, 1);
+}
 
-.hub-btn-alert {
-  border-color: #d4a017 !important;
+.phone-btn--alert {
+  border-color: var(--gold) !important;
   animation: pulse 1.5s infinite;
 }
 
-.hub-btn-day { border-color: #334; }
-.hub-btn-day:hover { border-color: #4a6a4a; }
+.phone-btn-icon {
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 8px;
+}
 
-.hub-btn-icon { font-size: 20px; margin-bottom: 4px; }
-.hub-btn-label { font-size: 10px; color: #c8d8f0; letter-spacing: 2px; }
-.hub-btn-desc { font-size: 7px; color: #556; letter-spacing: 1px; line-height: 1.4; }
+.phone-btn-icon--text {
+  font-size: 10px;
+  color: #e74c3c;
+  font-weight: bold;
+  letter-spacing: 1px;
+  background: rgba(200, 50, 50, 0.15);
+  border: 1px solid rgba(200, 50, 50, 0.3);
+}
 
-.hub-btn-alert .hub-btn-label { color: var(--gold-light); }
+.phone-btn-label {
+  font-size: 5px;
+  color: #8899bb;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+.phone-btn:hover .phone-btn-label { color: #c8d8f0; }
+.phone-btn--alert .phone-btn-label { color: var(--gold-light); }
+
+.phone-btn-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 14px;
+  height: 14px;
+  background: #e74c3c;
+  color: white;
+  font-size: 7px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  box-shadow: 0 0 6px rgba(231, 76, 60, 0.6);
+}
+
+/* Bottom navigation */
+.phone-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 0 10px;
+}
+
+.phone-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.phone-dot {
+  width: 6px;
+  height: 6px;
+  background: #334;
+  border-radius: 50%;
+}
+
+.phone-dot--active {
+  background: #8899bb;
+}
+
+.phone-home-btn {
+  width: 100px;
+  height: 32px;
+  background: rgba(20, 30, 50, 0.8);
+  border: 2px solid #3a4a6a;
+  border-radius: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+
+.phone-home-btn:hover {
+  border-color: #5a7aaa;
+  background: rgba(30, 45, 70, 0.9);
+}
+
+.phone-home-btn:active {
+  transform: scale(0.95);
+}
+
+.phone-home-icon {
+  font-size: 8px;
+  color: #8899bb;
+}
+
+.phone-home-label {
+  font-size: 6px;
+  color: #8899bb;
+  letter-spacing: 1px;
+}
+
+/* Fight countdown below phone */
+.hub-fight-countdown {
+  margin-top: 12px;
+  font-size: 7px;
+  color: var(--gold);
+  letter-spacing: 2px;
+  animation: pulse 2s infinite;
+  text-align: center;
+}
+
+
+/* ── Hub Mobile ── */
+@media (max-width: 700px) {
+  .hub-root {
+    flex-direction: column;
+  }
+
+  .hub-office {
+    flex: 0 0 35%;
+    min-height: 180px;
+  }
+
+  .hub-character { bottom: 10%; width: 55%; }
+  .hub-character-img { max-height: 50dvh; }
+  .hub-character-silhouette { font-size: 36px; }
+  .hub-desk-fg { max-height: 45%; }
+
+  .hub-hud {
+    top: 8px;
+    left: 8px;
+    padding: 6px 10px;
+    gap: 4px;
+    min-width: 150px;
+  }
+
+  .hub-hud-label { font-size: 5px; width: 36px; }
+  .hub-hud-bar { height: 8px; min-width: 60px; }
+  .hub-hud-value { font-size: 5px; min-width: 36px; }
+
+  .hub-day-badge {
+    bottom: 8px;
+    left: 8px;
+    font-size: 6px;
+    padding: 4px 8px;
+  }
+
+  .hub-phone-area {
+    flex: 1 1 auto;
+    padding: 8px;
+    justify-content: flex-start;
+  }
+
+  .hub-phone {
+    width: 100%;
+    max-width: 340px;
+    border-radius: 20px;
+    padding: 6px;
+  }
+
+  .phone-screen {
+    border-radius: 14px;
+  }
+
+  .phone-menu-title {
+    font-size: 11px;
+    padding: 6px 0 8px;
+  }
+
+  .phone-grid {
+    gap: 6px;
+    padding: 0 10px;
+  }
+
+  .phone-btn {
+    padding: 8px 2px 6px;
+    border-radius: 8px;
+  }
+
+  .phone-btn-icon { width: 32px; height: 32px; font-size: 18px; border-radius: 6px; }
+  .phone-btn-label { font-size: 5px; }
+
+  .phone-nav { padding: 8px 0 6px; gap: 6px; }
+  .phone-home-btn { width: 80px; height: 28px; }
+  .phone-statusbar { padding: 6px 10px 2px; }
+}
 
 @media (max-width: 480px) {
-  .hub-header { padding: 10px 12px; }
-  .hub-manager-name { font-size: 8px; }
-  .hub-money { font-size: 10px; }
-  .hub-actions {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    padding: 12px;
+  .hub-office {
+    flex: 0 0 28%;
+    min-height: 140px;
   }
-  .hub-btn { padding: 12px 10px; }
-  .hub-btn-icon { font-size: 18px; }
-  .hub-btn-label { font-size: 9px; }
-  .hub-btn-desc { font-size: 6px; }
-  .hub-status { padding: 6px 12px; gap: 8px; }
+
+  .hub-hud { min-width: 130px; }
+  .hub-hud-bar { min-width: 50px; }
+  .hub-character { bottom: 8%; width: 50%; }
+  .hub-character-silhouette { font-size: 28px; }
+  .hub-desk-fg { max-height: 40%; }
 }
 
 
