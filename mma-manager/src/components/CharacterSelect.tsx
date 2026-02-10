@@ -8,42 +8,56 @@ interface Props {
   onBack: () => void;
 }
 
+/** All choosable options: presets + custom slot */
+const allOptions = [
+  ...presetManagers,
+  {
+    id: 'custom',
+    name: 'CREATE-A-PLAYER',
+    title: '',
+    bio: '',
+    preset: false,
+    portraitBg: '#1a1a30',
+    accentColor: '#d4a017',
+    portrait: undefined,
+    sprite: undefined,
+    charisma: 7,
+    negotiation: 7,
+    scouting: 7,
+    connections: 7,
+  } as ManagerCharacter,
+];
+
 export default function CharacterSelect({ onSelect, onCustom, onBack }: Props) {
-  const [selected, setSelected] = useState<string | null>(null);
-  const current = presetManagers.find((m) => m.id === selected);
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const selected = allOptions[selectedIdx];
 
   const [brokenImgs, setBrokenImgs] = useState<Set<string>>(new Set());
-  const markBroken = useCallback((id: string) =>
-    setBrokenImgs((prev) => new Set(prev).add(id)), []);
+  const markBroken = useCallback(
+    (id: string) => setBrokenImgs((prev) => new Set(prev).add(id)),
+    [],
+  );
 
-  const [brokenSprites, setBrokenSprites] = useState<Set<string>>(new Set());
-  const markBrokenSprite = useCallback((id: string) =>
-    setBrokenSprites((prev) => new Set(prev).add(id)), []);
+  const prev = () => setSelectedIdx((i) => (i - 1 + allOptions.length) % allOptions.length);
+  const next = () => setSelectedIdx((i) => (i + 1) % allOptions.length);
 
-  /** On mobile, tapping a selected card again confirms it */
-  const handleCardTap = (id: string) => {
-    if (selected === id) {
-      if (id === 'custom') {
-        onCustom();
-      } else {
-        const m = presetManagers.find((p) => p.id === id);
-        if (m) onSelect(m);
-      }
-    } else {
-      setSelected(id);
-    }
+  const confirm = () => {
+    if (selected.id === 'custom') onCustom();
+    else onSelect(selected);
   };
+
+  const isCustom = selected.id === 'custom';
+  const hasPortrait = !isCustom && selected.portrait && !brokenImgs.has(selected.id);
 
   return (
     <div className="scanlines sel-screen">
       <h1 className="sel-title animate-fadeIn">SELECT YOUR MANAGER</h1>
 
-      {/* Horizontal-scrollable on mobile, flex row on desktop */}
-      <div className="sel-row animate-slideUp">
-        {presetManagers.map((m) => {
-          const active = selected === m.id;
-          const hasPortrait = m.portrait && !brokenImgs.has(m.id);
-          const hasSprite = m.sprite && !brokenSprites.has(m.id);
+      {/* ── Desktop: all cards in a row ── */}
+      <div className="sel-row sel-row-desktop animate-slideUp">
+        {allOptions.map((m, i) => {
+          const active = selectedIdx === i;
+          const portrait = m.id !== 'custom' && m.portrait && !brokenImgs.has(m.id);
 
           return (
             <div
@@ -51,10 +65,11 @@ export default function CharacterSelect({ onSelect, onCustom, onBack }: Props) {
               role="button"
               tabIndex={0}
               className={`sel-card${active ? ' active' : ''}`}
-              onClick={() => handleCardTap(m.id)}
+              onClick={() => { setSelectedIdx(i); }}
+              onDoubleClick={confirm}
             >
               <div className="sel-portrait" style={{ background: m.portraitBg }}>
-                {hasPortrait ? (
+                {portrait ? (
                   <img
                     src={m.portrait}
                     alt={m.name}
@@ -64,17 +79,15 @@ export default function CharacterSelect({ onSelect, onCustom, onBack }: Props) {
                   />
                 ) : (
                   <div className="sel-portrait-empty">
-                    <span className="sel-portrait-silhouette">?</span>
+                    {m.id === 'custom' ? (
+                      <>
+                        <span className="sel-create-plus">+</span>
+                        <span className="sel-create-label">CREATE NEW</span>
+                      </>
+                    ) : (
+                      <span className="sel-portrait-silhouette">?</span>
+                    )}
                   </div>
-                )}
-                {hasSprite && (
-                  <img
-                    src={m.sprite}
-                    alt=""
-                    draggable={false}
-                    onError={() => markBrokenSprite(m.id)}
-                    className="sel-sprite"
-                  />
                 )}
               </div>
               <div className="sel-name-plate">
@@ -83,41 +96,61 @@ export default function CharacterSelect({ onSelect, onCustom, onBack }: Props) {
             </div>
           );
         })}
-
-        {/* Create-a-Player */}
-        <div
-          role="button"
-          tabIndex={0}
-          className={`sel-card${selected === 'custom' ? ' active' : ''}`}
-          onClick={() => handleCardTap('custom')}
-        >
-          <div className="sel-portrait" style={{ background: '#1a1a30' }}>
-            <div className="sel-portrait-empty">
-              <span style={{ fontSize: 40, color: 'rgba(255,255,255,0.15)', lineHeight: 1 }}>+</span>
-              <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.2)', letterSpacing: 1, marginTop: 4 }}>CREATE NEW</span>
-            </div>
-          </div>
-          <div className="sel-name-plate">
-            <span className="sel-char-name">CREATE-A-PLAYER</span>
-          </div>
-        </div>
       </div>
 
-      {/* Hint text on mobile when something is selected */}
-      {selected && (
-        <div className="sel-tap-hint">TAP AGAIN TO CONFIRM</div>
-      )}
+      {/* ── Mobile: single card with arrows ── */}
+      <div className="sel-mobile-carousel animate-slideUp">
+        <button className="sel-arrow sel-arrow-left" onClick={prev} aria-label="Previous">
+          ◀
+        </button>
+
+        <div className="sel-card active">
+          <div className="sel-portrait" style={{ background: selected.portraitBg }}>
+            {hasPortrait ? (
+              <img
+                src={selected.portrait}
+                alt={selected.name}
+                draggable={false}
+                onError={() => markBroken(selected.id)}
+                className="sel-portrait-img"
+              />
+            ) : (
+              <div className="sel-portrait-empty">
+                {isCustom ? (
+                  <>
+                    <span className="sel-create-plus">+</span>
+                    <span className="sel-create-label">CREATE NEW</span>
+                  </>
+                ) : (
+                  <span className="sel-portrait-silhouette">?</span>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="sel-name-plate">
+            <span className="sel-char-name">{selected.name}</span>
+          </div>
+        </div>
+
+        <button className="sel-arrow sel-arrow-right" onClick={next} aria-label="Next">
+          ▶
+        </button>
+      </div>
+
+      {/* Dots indicator (mobile) */}
+      <div className="sel-dots">
+        {allOptions.map((_, i) => (
+          <span
+            key={i}
+            className={`sel-dot${selectedIdx === i ? ' active' : ''}`}
+            onClick={() => setSelectedIdx(i)}
+          />
+        ))}
+      </div>
 
       {/* Action bar */}
       <div className="sel-actions">
-        <button
-          className="sel-btn"
-          disabled={!selected}
-          onClick={() => {
-            if (selected === 'custom') onCustom();
-            else if (current) onSelect(current);
-          }}
-        >
+        <button className="sel-btn" onClick={confirm}>
           CHOOSE
         </button>
         <button className="sel-btn" onClick={onBack}>BACK</button>
