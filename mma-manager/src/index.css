@@ -1297,86 +1297,195 @@ button, [role="button"], .menu-item, .sel-card, .create-thumb {
     flex-direction: column;
   }
 
+  /* Office becomes a compact banner — phone menu is the priority */
   .hub-office {
-    flex: 0 0 35%;
-    min-height: 180px;
+    flex: 0 0 auto;
+    height: 25dvh;
+    min-height: 120px;
+    max-height: 200px;
   }
 
-  .hub-character { bottom: 10%; width: 55%; }
-  .hub-character-img { max-height: 50dvh; }
-  .hub-character-silhouette { font-size: 36px; }
-  .hub-desk-fg { max-height: 45%; }
+  .hub-character { bottom: 5%; width: 45%; max-width: 200px; }
+  .hub-character-img { max-height: 22dvh; }
+  .hub-character-silhouette { font-size: 28px; }
+  .hub-desk-fg { max-height: 40%; }
 
+  /* Compact HUD for mobile */
   .hub-hud {
-    top: 8px;
-    left: 8px;
-    padding: 6px 10px;
-    gap: 4px;
-    min-width: 150px;
+    top: 6px;
+    left: 6px;
+    padding: 4px 8px;
+    gap: 3px;
+    min-width: auto;
+    max-width: 55%;
   }
 
-  .hub-hud-label { font-size: 5px; width: 36px; }
-  .hub-hud-bar { height: 8px; min-width: 60px; }
-  .hub-hud-value { font-size: 5px; min-width: 36px; }
+  .hub-hud-label { font-size: 5px; width: 32px; }
+  .hub-hud-bar { height: 6px; min-width: 40px; }
+  .hub-hud-value { font-size: 5px; min-width: 30px; }
+  .hub-hud-row { gap: 4px; }
 
   .hub-day-badge {
-    bottom: 8px;
-    left: 8px;
-    font-size: 6px;
-    padding: 4px 8px;
+    bottom: 6px;
+    left: 6px;
+    font-size: 5px;
+    padding: 3px 6px;
   }
 
+  /* Phone area fills remaining vertical space */
   .hub-phone-area {
-    flex: 1 1 auto;
-    padding: 8px;
+    flex: 1 1 0;
+    min-height: 0;
+    padding: 6px 8px;
     justify-content: flex-start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .hub-phone {
     width: 100%;
-    max-width: 340px;
-    border-radius: 20px;
-    padding: 6px;
+    max-width: 380px;
+    border-radius: 18px;
+    padding: 5px;
+    box-shadow:
+      0 0 0 1.5px #555,
+      0 0 0 3px #222,
+      0 4px 16px rgba(0,0,0,0.5);
   }
+
+  .phone-notch { height: 4px; width: 60px; margin: 3px auto 4px; }
 
   .phone-screen {
-    border-radius: 14px;
+    border-radius: 13px;
   }
 
+  .phone-statusbar { padding: 4px 10px 2px; font-size: 5px; }
+
   .phone-menu-title {
-    font-size: 11px;
-    padding: 6px 0 8px;
+    font-size: 10px;
+    padding: 4px 0 6px;
+    letter-spacing: 3px;
   }
 
   .phone-grid {
     gap: 6px;
-    padding: 0 10px;
+    padding: 0 8px;
   }
 
   .phone-btn {
-    padding: 8px 2px 6px;
+    padding: 6px 2px 5px;
+    gap: 3px;
     border-radius: 8px;
+    border-width: 1.5px;
   }
 
-  .phone-btn-icon { width: 32px; height: 32px; font-size: 18px; border-radius: 6px; }
-  .phone-btn-label { font-size: 5px; }
+  .phone-btn-icon { width: 30px; height: 30px; font-size: 16px; border-radius: 6px; }
+  .phone-btn-icon--text { font-size: 8px; }
+  .phone-btn-label { font-size: 4.5px; }
 
-  .phone-nav { padding: 8px 0 6px; gap: 6px; }
-  .phone-home-btn { width: 80px; height: 28px; }
-  .phone-statusbar { padding: 6px 10px 2px; }
+  .phone-nav { padding: 6px 0 5px; gap: 5px; }
+  .phone-home-btn { width: 80px; height: 26px; border-width: 1.5px; }
+  .phone-home-icon { font-size: 7px; }
+  .phone-home-label { font-size: 5px; }
+
+  .hub-fight-countdown { margin-top: 6px; font-size: 6px; }
 }
 
+/* Small phones (iPhone SE, 375px-width class) */
 @media (max-width: 480px) {
   .hub-office {
-    flex: 0 0 28%;
-    min-height: 140px;
+    height: 22dvh;
+    min-height: 100px;
+    max-height: 160px;
   }
 
-  .hub-hud { min-width: 130px; }
-  .hub-hud-bar { min-width: 50px; }
-  .hub-character { bottom: 8%; width: 50%; }
-  .hub-character-silhouette { font-size: 28px; }
-  .hub-desk-fg { max-height: 40%; }
+  .hub-character { bottom: 3%; width: 40%; max-width: 160px; }
+  .hub-character-img { max-height: 18dvh; }
+  .hub-character-silhouette { font-size: 24px; }
+  .hub-desk-fg { max-height: 35%; }
+
+  .hub-hud { max-width: 50%; }
+  .hub-hud-bar { min-width: 30px; }
+
+  .hub-phone { max-width: 100%; border-radius: 14px; padding: 4px; }
+  .phone-screen { border-radius: 10px; }
+  .phone-grid { gap: 5px; padding: 0 6px; }
+  .phone-btn-icon { width: 28px; height: 28px; font-size: 15px; }
+  .phone-btn { padding: 5px 2px 4px; }
+  .phone-menu-title { font-size: 9px; padding: 3px 0 5px; }
+}
+
+/* Very short viewports / landscape on phones */
+@media (max-height: 600px) and (max-width: 700px) {
+  .hub-office {
+    height: 18dvh;
+    min-height: 80px;
+    max-height: 120px;
+  }
+
+  .hub-character { width: 35%; bottom: 2%; }
+  .hub-character-img { max-height: 15dvh; }
+  .hub-desk-fg { max-height: 30%; }
+
+  .hub-hud {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 2px 8px;
+    max-width: 70%;
+    padding: 3px 6px;
+  }
+  .hub-hud-row { gap: 3px; }
+  .hub-hud-bar { height: 5px; min-width: 30px; }
+
+  .hub-day-badge { font-size: 4px; padding: 2px 5px; }
+
+  .hub-phone-area { padding: 4px 6px; }
+  .phone-menu-title { font-size: 8px; padding: 2px 0 4px; }
+  .phone-grid { gap: 4px; padding: 0 6px; }
+  .phone-btn { padding: 4px 2px 3px; gap: 2px; }
+  .phone-btn-icon { width: 24px; height: 24px; font-size: 13px; }
+  .phone-btn-label { font-size: 4px; }
+  .phone-nav { padding: 4px 0 3px; gap: 4px; }
+  .phone-home-btn { width: 70px; height: 22px; }
+  .phone-statusbar { padding: 2px 8px 1px; }
+  .phone-notch { height: 3px; margin: 2px auto 3px; }
+}
+
+/* Landscape orientation on mobile — side-by-side layout */
+@media (orientation: landscape) and (max-height: 500px) {
+  .hub-root {
+    flex-direction: row;
+  }
+
+  .hub-office {
+    height: 100%;
+    max-height: none;
+    flex: 0 0 35%;
+    min-height: auto;
+  }
+
+  .hub-character { width: 50%; bottom: 5%; }
+  .hub-character-img { max-height: 40dvh; }
+
+  .hub-phone-area {
+    flex: 1 1 0;
+    padding: 6px;
+    justify-content: center;
+    overflow-y: auto;
+  }
+
+  .hub-phone { max-width: 280px; }
+  .phone-grid { gap: 4px; padding: 0 6px; }
+  .phone-btn { padding: 4px 2px 3px; }
+  .phone-btn-icon { width: 22px; height: 22px; font-size: 12px; }
+  .phone-btn-label { font-size: 4px; }
+  .phone-menu-title { font-size: 8px; padding: 2px 0 4px; }
+  .phone-nav { padding: 4px 0 3px; gap: 3px; }
+  .phone-home-btn { width: 68px; height: 22px; }
+  .phone-statusbar { padding: 3px 8px 1px; }
+
+  .hub-hud { top: 4px; left: 4px; padding: 3px 6px; gap: 2px; }
+  .hub-day-badge { bottom: 4px; left: 4px; font-size: 4px; padding: 2px 4px; }
 }
 
 
