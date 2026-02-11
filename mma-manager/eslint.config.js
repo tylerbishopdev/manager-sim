@@ -13,6 +13,7 @@ export default defineConfig([
       js.configs.recommended,
       tseslint.configs.recommended,
       reactHooks.configs.flat.recommended,
+      tailwindcss.configs.flat.recommended,
       reactRefresh.configs.vite,
     ],
     languageOptions: {
