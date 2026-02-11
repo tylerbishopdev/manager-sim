@@ -959,8 +959,8 @@ button, [role="button"], .menu-item, .sel-card, .create-thumb {
   z-index: 0;
 }
 
-/* Combo SVG: pre-composited desk + character scene */
-.hub-combo-bg {
+/* Preset full-scene background (desk + character composed) */
+.hub-scene-bg {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -968,7 +968,20 @@ button, [role="button"], .menu-item, .sel-card, .create-thumb {
   object-fit: contain;
   object-position: center bottom;
   z-index: 0;
-  background: #0a0a0f;
+}
+
+/* Desk foreground */
+.hub-desk-fg {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: auto;
+  max-height: 55%;
+  object-fit: contain;
+  object-position: bottom center;
+  z-index: 3;
+  pointer-events: none;
 }
 
 /* Warm vignette + darkened edges over the whole scene */
@@ -983,25 +996,59 @@ button, [role="button"], .menu-item, .sel-card, .create-thumb {
   pointer-events: none;
 }
 
-/* Layer 2: Manager character — sits between bg and desk */
+/* Layer 2: Manager character — behind desk */
+
+@media screen and (min-width: 700px) {
+  .hub-character {
+    bottom: 37%;
+    left: 48%;
+    transform: translateX(-50%);
+    z-index: 2;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    pointer-events: none;
+    width: 30%;
+    max-width: 260px;
+  }
+
+  .hub-character-img {
+    max-height: 55dvh;
+  }
+  .hub-character-placeholder {
+    display: none;
+  }
+  .hub-character-silhouette {
+    display: none;
+  }
+  .hub-character-img {
+    max-height: 55dvh;
+  }
+  .hub-character-placeholder {
+    display: none;
+  }
+  .hub-character-silhouette {
+    display: none;
+  }
+}
 .hub-character {
   position: absolute;
-  bottom: 15%;
-  left: 50%;
+  bottom: 37%;
+  left: 48%;
   transform: translateX(-50%);
   z-index: 2;
   display: flex;
   align-items: flex-end;
   justify-content: center;
   pointer-events: none;
-  width: 60%;
-  max-width: 400px;
+  width: 30%;
+  max-width: 260px;
 }
 
 .hub-character-img {
   width: 100%;
   height: auto;
-  max-height: 70dvh;
+  max-height: 55dvh;
   object-fit: contain;
   object-position: bottom center;
   image-rendering: auto;
@@ -1043,19 +1090,20 @@ button, [role="button"], .menu-item, .sel-card, .create-thumb {
 }
 
 .hub-hud-label {
-  font-size: 6px;
+font-size: 9px;
+font-variant: small-caps ;
   color: #aaa;
-  letter-spacing: 1px;
-  width: 50px;
+  letter-spacing: 0.05px;
+  width: 65px;
   flex-shrink: 0;
   line-height: 1.3;
 }
 
 .hub-hud-bar {
   flex: 1;
-  height: 10px;
-  background: #1a1a24;
-  border: 1px solid #333;
+  height: 14px;
+  background: #060607;
+  border: 1.5px solid #929292;
   position: relative;
   overflow: hidden;
   min-width: 80px;
@@ -1067,25 +1115,25 @@ button, [role="button"], .menu-item, .sel-card, .create-thumb {
 }
 
 .hub-hud-fill--money {
-  background: linear-gradient(90deg, #22a845, #4ade80);
+  background: linear-gradient(90deg, #3AA055, #106730);
 }
 
 .hub-hud-fill--morale {
   background: linear-gradient(90deg,
     #4488ff 0%,
-    #7744cc 30%,
-    #cc44aa 60%,
+    #8DD1FF 30%,
+    #70748D 60%,
     #ffaa33 80%,
-    #ff5577 100%
+    #FF5555 100%
   );
 }
 
 .hub-hud-fill--rep {
-  background: linear-gradient(90deg, #c0392b, #e74c3c);
+  background: linear-gradient(90deg, #2BC0C0, #FF8717);
 }
 
 .hub-hud-value {
-  font-size: 6px;
+  font-size: 8px;
   color: #4ade80;
   letter-spacing: 1px;
   min-width: 44px;
@@ -1107,237 +1155,183 @@ button, [role="button"], .menu-item, .sel-card, .create-thumb {
   bottom: 16px;
   left: 16px;
   z-index: 10;
-  font-size: 7px;
-  color: #667;
+  font-size: 10px;
+  color: rgb(255 251 0);
   letter-spacing: 2px;
-  background: rgba(0,0,0,0.5);
+  background: rgba(5 4 21 / 0.5);
   padding: 6px 12px;
-  border: 1px solid rgba(255,255,255,0.05);
+  border: 2px solid rgba(255,255,255,0.05);
 }
 
 
 /* ═══════════════════════════════════════════
-   RIGHT PANEL: Phone Interface
+   RIGHT PANEL: Phone Device
    ═══════════════════════════════════════════ */
 
-.hub-phone-area {
-  flex: 0 0 300px;
+.hub-phone-panel {
+  flex: 0 0 auto;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 300px;
-  min-width: 260px;
-  padding: 20px 16px;
+  padding: 16px;
   z-index: 5;
 }
 
-.hub-phone {
-  width: min(280px, 100%);
-  max-height: calc(100dvh - 48px);
-  background: linear-gradient(160deg, #3a3a44, #1e1e28, #2a2a34);
-  border-radius: 28px;
-  padding: 8px;
-  box-shadow:
-    0 0 0 2px #555,
-    0 0 0 4px #222,
-    0 8px 32px rgba(0,0,0,0.7),
-    inset 0 1px 0 rgba(255,255,255,0.08);
+/* Phone device wrapper */
+.phone-device {
   position: relative;
+  width: 280px;
+  height: min(560px, calc(100dvh - 40px));
+}
+
+/* Phone bezel SVG as frame */
+.phone-bezel {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Phone screen content (positioned inside the bezel) */
+.phone-content {
+  position: absolute;
+  top: 12%;
+  left: 8%;
+  right: 8%;
+  bottom: 18%;
+  z-index: 2;
   display: flex;
   flex-direction: column;
-}
-
-.phone-notch {
-  width: 80px;
-  height: 6px;
-  background: #111;
-  border-radius: 4px;
-  margin: 4px auto 6px;
-}
-
-.phone-screen {
-  background: linear-gradient(180deg, #1a2a4a 0%, #0e1830 30%, #0c1428 100%);
-  border-radius: 18px;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
 }
 
 /* Status bar */
-.phone-statusbar {
+.phone-status {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 14px 4px;
-  font-size: 6px;
-  color: #7788aa;
+  padding: 2% 6%;
+  font-size: 5px;
+  color: #888;
   letter-spacing: 1px;
+  flex-shrink: 0;
 }
 
-.phone-carrier { opacity: 0.7; }
-.phone-time { font-weight: bold; color: #99aacc; }
-
-/* Menu title */
-.phone-menu-title {
-  font-size: 14px;
-  color: #c8d8f0;
-  letter-spacing: 4px;
-  text-align: center;
-  padding: 10px 0 12px;
-  text-shadow: 0 2px 0 rgba(0,0,0,0.5);
-}
-
-/* 3x3 Grid */
-.phone-grid {
+/* 3x3 App icon grid — fully relative sizing */
+.phone-app-grid {
+  flex: 1 1 auto;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding: 0 14px;
+  grid-template-rows: repeat(3, 1fr);
+  gap: 2%;
+  padding: 3% 4%;
+  align-items: center;
+  justify-items: center;
+  min-height: 0;
 }
 
-.phone-btn {
+.phone-app {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 10px 4px 8px;
-  background: rgba(20, 30, 60, 0.8);
-  border: 2px solid #2a3a5a;
-  border-radius: 10px;
+  gap: 3px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: transform 0.12s;
   position: relative;
+  background: none;
+  border: none;
   font-family: inherit;
+  padding: 0;
+  width: 100%;
 }
 
-.phone-btn:hover {
-  border-color: #4a6a9a;
-  background: rgba(30, 45, 80, 0.95);
-  transform: translateY(-1px);
-}
+.phone-app:hover { transform: scale(1.06); }
+.phone-app:active { transform: scale(0.92); }
 
-.phone-btn:active {
-  transform: scale(0.94);
-  background: rgba(40, 55, 90, 1);
-}
+.phone-app--alert .phone-app-icon { box-shadow: 0 0 8px rgba(212, 160, 23, 0.6); }
 
-.phone-btn--alert {
-  border-color: var(--gold) !important;
-  animation: pulse 1.5s infinite;
-}
-
-.phone-btn-icon {
-  font-size: 22px;
+.phone-app-icon {
+  width: 70%;
+  aspect-ratio: 1;
+  max-width: 56px;
+  border-radius: 22%;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: rgba(0,0,0,0.3);
-  border-radius: 8px;
+  background: rgba(200, 200, 210, 0.15);
 }
 
-.phone-btn-icon--text {
-  font-size: 10px;
-  color: #e74c3c;
-  font-weight: bold;
-  letter-spacing: 1px;
-  background: rgba(200, 50, 50, 0.15);
-  border: 1px solid rgba(200, 50, 50, 0.3);
+.phone-app-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.phone-btn-label {
-  font-size: 5px;
-  color: #8899bb;
-  letter-spacing: 1px;
+.phone-app-label {
+  font-size: clamp(3px, 1.2vw, 7px);
+  color: #262626;
+  letter-spacing: 0.1px;
   text-align: center;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  white-space: nowrap;
 }
 
-.phone-btn:hover .phone-btn-label { color: #c8d8f0; }
-.phone-btn--alert .phone-btn-label { color: var(--gold-light); }
-
-.phone-btn-badge {
+.phone-app-badge {
   position: absolute;
   top: -2px;
-  right: -2px;
-  width: 14px;
-  height: 14px;
+  right: 8%;
+  width: 12px;
+  height: 12px;
   background: #e74c3c;
   color: white;
-  font-size: 7px;
+  font-size: 6px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  box-shadow: 0 0 6px rgba(231, 76, 60, 0.6);
 }
 
-/* Bottom navigation */
-.phone-nav {
+/* Bottom dock — tight, proportional */
+.phone-dock {
+  flex-shrink: 0;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 0 10px;
-}
-
-.phone-dots {
-  display: flex;
-  gap: 6px;
-}
-
-.phone-dot {
-  width: 6px;
-  height: 6px;
-  background: #334;
-  border-radius: 50%;
-}
-
-.phone-dot--active {
-  background: #8899bb;
-}
-
-.phone-home-btn {
-  width: 100px;
-  height: 32px;
-  background: rgba(20, 30, 50, 0.8);
-  border: 2px solid #3a4a6a;
-  border-radius: 16px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 6px;
-  transition: all 0.15s;
+  gap: 8%;
+  padding: 2% 2%;
+  background: rgba(0,0,0,0.2);
+  border-radius: 10px;
+  margin: 0 14%;
 }
 
-.phone-home-btn:hover {
-  border-color: #5a7aaa;
-  background: rgba(30, 45, 70, 0.9);
+.phone-dock-btn {
+  width: 28%;
+  max-width: 40px;
+  aspect-ratio: 1;
+  border-radius: 22%;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.12s;
+  background: rgba(80,80,90,0.4);
+  border: none;
+  padding: 6%;
 }
 
-.phone-home-btn:active {
-  transform: scale(0.95);
+.phone-dock-btn:hover { transform: scale(1.1); }
+.phone-dock-btn:active { transform: scale(0.9); }
+
+.phone-dock-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
-.phone-home-icon {
-  font-size: 8px;
-  color: #8899bb;
-}
-
-.phone-home-label {
-  font-size: 6px;
-  color: #8899bb;
-  letter-spacing: 1px;
-}
-
-/* Fight countdown below phone */
 .hub-fight-countdown {
-  margin-top: 12px;
+  margin-top: 8px;
   font-size: 7px;
   color: var(--gold);
   letter-spacing: 2px;
@@ -1345,261 +1339,121 @@ button, [role="button"], .menu-item, .sel-card, .create-thumb {
   text-align: center;
 }
 
+/* Phone toggle (mobile only) */
+.hub-phone-toggle { display: none;
+ }
 
-/* ── Hub Mobile ── */
+/* Phone overlay (mobile full-screen) */
+.hub-phone-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 12px;
+  padding-top: max(24px, env(safe-area-inset-top));
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+}
+
+.hub-phone-overlay-inner {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  height: 100%;
+  max-height: 620px;
+}
+
+.hub-phone-overlay-close {
+  position: absolute;
+  top: -36px;
+  right: 4px;
+  width: 28px;
+  height: 28px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 50%;
+  color: #ccc;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  z-index: 2;
+}
+
+.hub-phone-overlay-close:active { transform: scale(0.9); }
+
+/* In overlay, phone fills the container */
+.hub-phone-overlay-inner .phone-device {
+  width: 100%;
+  height: 100%;
+}
+
+
+/* ═══════════════════════════════
+   Hub Mobile
+   ═══════════════════════════════ */
 @media (max-width: 700px) {
-  .hub-root {
-    flex-direction: column;
-  }
+  .hub-root { flex-direction: column; }
 
-  /* ── Office: compact banner strip at top ── */
+  /* Office fills entire screen */
   .hub-office {
-    flex: 0 0 auto;
-    height: 28dvh;
-    min-height: 120px;
-    max-height: 200px;
+    flex: 1 1 auto;
+    width: 100%;
+    height: 100%;
   }
 
   .hub-office-bg { object-position: center 35%; }
+  .hub-character { bottom: 30%; width: 50%; max-width: none; left: 50%; }
+  .hub-character-img { max-height: 48dvh; }
+  .hub-desk-fg { max-height: 45%; }
 
-  .hub-character { bottom: 0; width: 40%; max-width: 200px; }
-  .hub-character-img { max-height: 26dvh; }
-  .hub-character-silhouette { font-size: 32px; }
-  .hub-desk-fg { max-height: 50%; }
-
-  /* Compact HUD for mobile */
   .hub-hud {
-    top: 6px;
-    left: 6px;
-    padding: 5px 8px;
-    gap: 3px;
-    min-width: 0;
-    width: auto;
-    max-width: 55%;
+    top: 6px; left: 6px;
+    padding: 5px 8px; gap: 3px;
+    min-width: 0; max-width: 55%;
   }
 
   .hub-hud-label { font-size: 5px; width: 32px; }
   .hub-hud-row { gap: 4px; }
   .hub-hud-bar { height: 6px; min-width: 40px; }
   .hub-hud-value { font-size: 5px; min-width: 30px; }
+  .hub-day-badge { bottom: 6px; left: 6px; font-size: 5px; padding: 3px 6px; }
 
-  .hub-day-badge {
-    bottom: 6px;
-    left: 6px;
-    font-size: 5px;
-    padding: 3px 6px;
-  }
+  /* Hide desktop phone panel */
+  .hub-phone-panel { display: none; }
 
-  /* Phone area fills remaining vertical space */
-  .hub-phone-area {
-    flex: 1 1 0;
-    min-height: 0;
+  /* Menu button — upper center area */
+  .hub-phone-toggle {
+    display: flex;
+    position: absolute;
+    top: 25%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    width: 125px;
+    height: 125px;
     padding: 0;
-    justify-content: stretch;
-  }
-
-  .hub-phone {
-    width: 100%;
-    max-width: none;
     border-radius: 0;
-    padding: 0;
     background: none;
-    box-shadow: none;
-    min-width: 0;
-    height: 100%;
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
+    border: none;
+    cursor: pointer;
+    image-rendering: pixelated;
   }
 
-  .phone-notch { display: none; }
-
-  .phone-screen {
-    border-radius: 0;
-    background: linear-gradient(180deg, #111828 0%, #0c1420 100%);
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
-
-  .phone-statusbar { padding: 6px 12px 3px; font-size: 6px; }
-
-  .phone-menu-title {
-    font-size: 11px;
-    padding: 5px 0 7px;
-    letter-spacing: 3px;
-  }
-
-  /* Grid fills remaining space with 3x3 buttons */
-  .phone-grid {
-    flex: 1 1 auto;
-    min-height: 0;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-    padding: 0 10px 8px;
-  }
-
-  .phone-btn {
-    height: 100%;
-    padding: 8px 2px 6px;
-    gap: 4px;
-    border-radius: 9px;
-    border-width: 1.5px;
-  }
-
-  .phone-btn-icon { width: 32px; height: 32px; font-size: 17px; border-radius: 7px; }
-  .phone-btn-icon--text { font-size: 9px; }
-  .phone-btn-label { font-size: 5px; }
-
-  .phone-nav {
-    padding: 6px 10px;
-    padding-bottom: max(6px, env(safe-area-inset-bottom));
-    gap: 5px;
-    border-top: 1px solid rgba(255,255,255,0.08);
-  }
-
-  .phone-dots { display: none; }
-
-  .phone-home-btn {
+  .hub-phone-toggle img {
     width: 100%;
-    height: 36px;
-    border-radius: 8px;
-    border-width: 1.5px;
-    background: rgba(212, 160, 23, 0.12);
-    border-color: var(--gold);
-  }
-
-  .phone-home-icon { font-size: 8px; color: var(--gold); }
-  .phone-home-label { font-size: 6px; color: var(--gold); letter-spacing: 2px; }
-
-  .hub-fight-countdown { margin-top: 4px; font-size: 6px; }
-}
-
-/* Small phones (iPhone SE, 375px-width class) */
-@media (max-width: 480px) {
-  .hub-office {
-    height: clamp(100px, 24dvh, 160px);
-    min-height: 100px;
-    max-height: 160px;
-  }
-
-  .hub-character { bottom: 2%; width: min(38vw, 160px); }
-  .hub-character-img { max-height: 18dvh; }
-  .hub-character-silhouette { font-size: 24px; }
-  .hub-desk-fg { max-height: 42%; }
-
-  .hub-hud { max-width: 58%; }
-  .hub-hud-bar { min-width: 30px; }
-
-  .hub-phone { max-width: none; border-radius: 0; padding: 0; }
-  .phone-screen { border-radius: 0; }
-  .phone-grid { gap: 6px; padding: 0 8px 6px; }
-  .phone-btn-icon { width: 30px; height: 30px; font-size: 15px; }
-  .phone-btn { padding: 6px 2px 5px; }
-  .phone-btn-label { font-size: 5px; }
-  .phone-menu-title { font-size: 10px; padding: 4px 0 6px; }
-  .phone-nav { padding: 5px 8px; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
-  .phone-home-btn { width: 100%; height: 34px; }
-}
-
-/* Very short viewports / landscape on phones */
-@media (max-height: 600px) and (max-width: 700px) {
-  .hub-office {
-    height: 18dvh;
-    min-height: 80px;
-    max-height: 120px;
-  }
-
-  .hub-character { width: 35%; bottom: 2%; }
-  .hub-character-img { max-height: 15dvh; }
-  .hub-desk-fg { max-height: 30%; }
-
-  .hub-hud {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 2px 8px;
-    max-width: 70%;
-    padding: 3px 6px;
-  }
-  .hub-hud-row { gap: 3px; }
-  .hub-hud-bar { height: 5px; min-width: 30px; }
-
-  .hub-day-badge { font-size: 4px; padding: 2px 5px; }
-
-  .hub-phone-area { padding: 0; }
-  .phone-menu-title { font-size: 8px; padding: 2px 0 4px; }
-  .phone-grid { gap: 5px; padding: 0 6px 5px; }
-  .phone-btn { padding: 4px 2px 3px; gap: 2px; }
-  .phone-btn-icon { width: 24px; height: 24px; font-size: 13px; }
-  .phone-btn-label { font-size: 4px; }
-  .phone-nav { padding: 4px 6px; gap: 4px; }
-  .phone-home-btn { width: 100%; height: 24px; }
-  .phone-statusbar { padding: 2px 8px 1px; }
-  .phone-notch { display: none; }
-}
-
-/* Landscape orientation on mobile — side-by-side layout */
-@media (orientation: landscape) and (max-height: 520px) and (max-width: 900px) {
-  .hub-root { flex-direction: row; }
-
-  .hub-office {
-    flex: 0 0 38%;
     height: 100%;
-    min-height: auto;
-    max-height: none;
+    object-fit: contain;
+    image-rendering: pixelated;
   }
 
-  .hub-character { width: 50%; bottom: 4%; }
-  .hub-character-img { max-height: 36dvh; }
-
-  .hub-hud { top: 4px; left: 4px; padding: 3px 6px; gap: 2px; max-width: 68%; }
-  .hub-day-badge { bottom: 4px; left: 4px; font-size: 4px; padding: 2px 4px; }
-
-  .hub-phone-area {
-    flex: 1 1 0;
-    min-height: 0;
-    padding: 0;
-    align-items: stretch;
-    justify-content: stretch;
+  .hub-phone-toggle:active {
+    transform: translateX(-50%) translateY(2px);
   }
-
-  .hub-phone { width: 100%; max-width: none; border-radius: 0; padding: 0; }
-  .phone-grid { gap: 5px; padding: 0 8px 6px; }
-  .phone-btn { padding: 5px 2px 4px; }
-  .phone-btn-icon { width: 24px; height: 24px; font-size: 13px; }
-  .phone-btn-label { font-size: 4px; }
-  .phone-menu-title { font-size: 9px; padding: 3px 0 5px; }
-  .phone-nav { padding: 4px 8px; }
-  .phone-home-btn { height: 28px; }
-  .phone-statusbar { padding: 3px 8px 1px; font-size: 5px; }
-}
-
-/* Extra small phones */
-@media (max-width: 380px) {
-  .hub-office {
-    height: clamp(96px, 24dvh, 150px);
-    min-height: 96px;
-    max-height: 150px;
-  }
-
-  .hub-character { width: min(34vw, 150px); }
-  .hub-character-img { max-height: 18dvh; }
-  .hub-desk-fg { max-height: 42%; }
-
-  .hub-hud { padding: 3px 5px; gap: 2px; max-width: 60%; }
-  .hub-hud-label { font-size: 4px; width: 26px; }
-  .hub-hud-bar { height: 5px; min-width: 30px; }
-  .hub-hud-value { font-size: 4px; min-width: 24px; }
-
-  .phone-grid { gap: 6px; padding: 0 8px 6px; }
-  .phone-btn { padding: 6px 2px 5px; }
-  .phone-btn-icon { width: 30px; height: 30px; font-size: 15px; }
-  .phone-btn-icon--text { font-size: 8px; }
-  .phone-btn-label { font-size: 5px; }
-  .phone-home-btn { height: 34px; }
 }
 
 

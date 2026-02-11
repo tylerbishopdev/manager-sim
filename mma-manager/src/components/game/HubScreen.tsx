@@ -1,13 +1,11 @@
+import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { GYM_UPGRADES } from '../../types/gameplay';
 
-/**
- * Hub Screen — Redesigned to match the reference UI.
- * Two-panel layout: office background (left) + phone menu (right).
- * The phone is the primary interaction surface.
- */
 export default function HubScreen() {
   const { gameState, pushDialog, advanceDay, manager } = useGameStore();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   if (!gameState || !manager) return null;
 
   const { day, money, fighters, schedule, gym, sponsors } = gameState;
@@ -17,310 +15,227 @@ export default function HubScreen() {
   const nextUpgrade = GYM_UPGRADES.find((u) => u.level === gym.level + 1);
   const hasFightToday = schedule.some((f) => f.day <= day);
 
-  // ── HUD data ──
   const topFighter = fighters[0];
   const moralePercent = topFighter ? topFighter.morale : 0;
   const moneyPercent = Math.min(100, (money / 50000) * 100);
-  const reputationPercent = gym.reputation; // "Family" bar → gym reputation
+  const reputationPercent = gym.reputation;
 
-  // ── In-game clock display ──
-  const gameHour = 8 + Math.floor((day % 3) * 4); // cosmetic time-of-day
-  const displayTime = `${gameHour > 12 ? gameHour - 12 : gameHour}:${String((day * 7) % 60).padStart(2, '0')} ${gameHour >= 12 ? 'PM' : 'AM'}`;
+  // ── Actions (all close mobile overlay) ──
 
-  // ── Hub actions (open conversational dialogs) ──
+  const act = (fn: () => void) => () => { setMobileMenuOpen(false); fn(); };
 
-  const openFights = () => {
+  const openFights = act(() => {
     const todaysFight = schedule.find((f) => f.day <= day);
     if (todaysFight) {
       const fighter = fighters.find((f) => f.id === todaysFight.fighterId);
-      pushDialog({
-        speaker: 'ANNOUNCER',
-        text: `FIGHT NIGHT! ${fighter?.name ?? 'Your fighter'} vs ${todaysFight.opponent.name} at ${todaysFight.venue}. The crowd is READY.`,
-        choices: [
-          { label: "LET'S GO!", action: 'start_fight' },
-          { label: 'Hold on...', action: 'dismiss' },
-        ],
-      });
+      pushDialog({ speaker: 'ANNOUNCER', text: `FIGHT NIGHT! ${fighter?.name ?? 'Your fighter'} vs ${todaysFight.opponent.name} at ${todaysFight.venue}. The crowd is READY.`, choices: [{ label: "LET'S GO!", action: 'start_fight' }, { label: 'Hold on...', action: 'dismiss' }] });
     } else if (nextFight) {
-      pushDialog({
-        speaker: 'ARENA',
-        text: `No fight today. Next bout in ${nextFight.day - day} day${nextFight.day - day !== 1 ? 's' : ''} at ${nextFight.venue}. Keep training.`,
-      });
+      pushDialog({ speaker: 'ARENA', text: `No fight today. Next bout in ${nextFight.day - day} day${nextFight.day - day !== 1 ? 's' : ''} at ${nextFight.venue}.` });
     } else {
-      pushDialog({
-        speaker: 'ARENA',
-        text: "Nothing booked. Talk to the promoter to line up a fight.",
-      });
+      pushDialog({ speaker: 'ARENA', text: "Nothing booked. Talk to the promoter to line up a fight." });
     }
-  };
+  });
 
-  const openScout = () => {
-    const scoutBonus = gym.staff.scout ? " Your scout has some inside leads." : "";
+  const openGym = act(() => {
+    const staffList = Object.entries(gym.staff).map(([r, h]) => `${r}: ${h ? '✓' : '✗'}`).join(' | ');
     pushDialog({
-      speaker: 'SCOUT',
-      text: `Yo boss! I know some fighters looking for work.${scoutBonus} Want me to round up some prospects?`,
-      choices: [
-        { label: "Let's see who's out there", action: 'open_scout' },
-        { label: 'Not right now', action: 'dismiss' },
-      ],
+      speaker: gymLabel.toUpperCase(), text: `Level ${gym.level} — "${gymLabel}"\nRoster: ${fighters.length}/${gym.maxFighters} | Equipment: ${gym.equipment}%\nStaff: ${staffList}`, choices: [
+        nextUpgrade ? { label: `Upgrade ($${nextUpgrade.cost.toLocaleString()})`, action: 'upgrade_gym' } : null,
+        !gym.staff.trainer ? { label: 'Hire Trainer ($800)', action: 'hire_trainer' } : null,
+        !gym.staff.cutman ? { label: 'Hire Cutman ($500)', action: 'hire_cutman' } : null,
+        { label: 'Back', action: 'dismiss' },
+      ].filter(Boolean) as { label: string; action: string }[]
     });
-  };
+  });
 
-  const openTraining = () => {
-    if (fighters.length === 0) {
-      pushDialog({ speaker: 'GYM', text: "No fighters to train. Go scout some talent first." });
-      return;
-    }
+  const openTraining = act(() => {
+    if (fighters.length === 0) { pushDialog({ speaker: 'GYM', text: "No fighters to train." }); return; }
     const f = fighters[0];
-    const trainerBonus = gym.staff.trainer ? ' Your trainer gives a boost.' : '';
     pushDialog({
-      speaker: 'TRAINING',
-      text: `${f.name} is ready to train. HP: ${f.health}%, Morale: ${f.morale}%.${trainerBonus} What should they focus on?`,
-      choices: [
+      speaker: 'TRAINING', text: `${f.name} ready. What to focus on?`, choices: [
         { label: `Striking (${f.stats.striking}/10)`, action: 'train_striking' },
         { label: `Grappling (${f.stats.grappling}/10)`, action: 'train_grappling' },
         { label: `Conditioning (${f.stats.conditioning}/10)`, action: 'train_conditioning' },
-        fighters.length > 1 ? { label: 'Pick different fighter', action: 'pick_fighter_train' } : null,
-        { label: 'Skip training', action: 'dismiss' },
-      ].filter(Boolean) as { label: string; action: string }[],
+        { label: 'Skip', action: 'dismiss' },
+      ]
     });
-  };
+  });
 
-  const openOffice = () => {
+  const openScout = act(() => {
     pushDialog({
-      speaker: 'YOUR DESK',
-      text: `Day ${day}, Week ${week}. You've got $${money.toLocaleString()} in the bank${money < 2000 ? " — running low." : "."} What's the move?`,
-      choices: [
-        { label: 'Review Roster', action: 'open_roster' },
-        { label: 'Check Finances', action: 'open_finance' },
-        { label: 'Rest (Next Day)', action: 'advance_day' },
-        { label: 'Save Game', action: 'save_game' },
-        { label: 'Never mind', action: 'dismiss' },
-      ],
+      speaker: 'SCOUT', text: `Yo boss! I know some fighters looking for work.${gym.staff.scout ? " Your scout has leads." : ""}`, choices: [
+        { label: "Show me", action: 'open_scout' }, { label: 'Not now', action: 'dismiss' },
+      ]
     });
-  };
+  });
 
-  const openGym = () => {
-    const staffList = Object.entries(gym.staff)
-      .map(([role, hired]) => `${role}: ${hired ? '✓' : '✗'}`)
-      .join(' | ');
-
+  const openOffice = act(() => {
     pushDialog({
-      speaker: gymLabel.toUpperCase(),
-      text: `Level ${gym.level} — "${gymLabel}"\nRoster: ${fighters.length}/${gym.maxFighters} | Equipment: ${gym.equipment}% | Rep: ${gym.reputation}%\nStaff: ${staffList}`,
-      choices: [
-        nextUpgrade ? { label: `Upgrade to "${nextUpgrade.label}" ($${nextUpgrade.cost.toLocaleString()})`, action: 'upgrade_gym' } : null,
-        !gym.staff.trainer ? { label: `Hire Trainer ($800)`, action: 'hire_trainer' } : null,
-        !gym.staff.cutman ? { label: `Hire Cutman ($500)`, action: 'hire_cutman' } : null,
-        !gym.staff.nutritionist ? { label: `Hire Nutritionist ($600)`, action: 'hire_nutritionist' } : null,
-        !gym.staff.scout ? { label: `Hire Scout ($700)`, action: 'hire_scout' } : null,
-        { label: 'Back', action: 'dismiss' },
-      ].filter(Boolean) as { label: string; action: string }[],
+      speaker: 'YOUR DESK', text: `Day ${day}, Week ${week}. $${money.toLocaleString()} in the bank.`, choices: [
+        { label: 'Roster', action: 'open_roster' }, { label: 'Finances', action: 'open_finance' },
+        { label: 'Save Game', action: 'save_game' }, { label: 'Back', action: 'dismiss' },
+      ]
     });
-  };
+  });
 
-  const openVisits = () => {
-    // Advance day with a flavor twist — "going out" to find opportunities
+  const openPromoter = act(() => {
+    if (fighters.length === 0) { pushDialog({ speaker: 'PROMOTER', text: "No fighters signed." }); return; }
     pushDialog({
-      speaker: 'STREETS',
-      text: `You hit the streets looking for opportunities. Word is spreading about your gym.${sponsors.length > 0 ? ` Your ${sponsors.length} sponsor${sponsors.length > 1 ? 's' : ''} keep${sponsors.length === 1 ? 's' : ''} you afloat.` : ' No sponsors yet.'}`,
-      choices: [
-        { label: 'Advance to next day', action: 'advance_day' },
-        { label: 'Head back', action: 'dismiss' },
-      ],
+      speaker: 'PROMOTER', text: `Gym rep: ${gym.reputation}%. Ready to look at fights?`, choices: [
+        { label: 'Show fights', action: 'open_calendar' }, { label: 'Maybe later', action: 'dismiss' },
+      ]
     });
-  };
+  });
 
-  const openPromoter = () => {
-    if (fighters.length === 0) {
-      pushDialog({ speaker: 'PROMOTER', text: "You don't have any fighters signed. I can't book air, boss." });
-      return;
+  const openVisits = act(() => {
+    pushDialog({
+      speaker: 'STREETS', text: `Looking for opportunities...${sponsors.length > 0 ? ` ${sponsors.length} sponsor${sponsors.length > 1 ? 's' : ''}.` : ' No sponsors yet.'}`, choices: [
+        { label: 'Next day', action: 'advance_day' }, { label: 'Head back', action: 'dismiss' },
+      ]
+    });
+  });
+
+  const openContracts = act(() => {
+    if (fighters.length === 0) { pushDialog({ speaker: 'CONTRACTS', text: "No contracts." }); return; }
+    pushDialog({
+      speaker: 'CONTRACTS', text: fighters.map(f => `${f.name}: ${f.contractWeeksLeft}wk, $${f.salary}/wk`).join('\n'), choices: [
+        { label: 'Full roster', action: 'open_roster' }, { label: 'Back', action: 'dismiss' },
+      ]
+    });
+  });
+
+  const handleForward = act(() => {
+    advanceDay();
+    const gs = useGameStore.getState().gameState;
+    if (gs) {
+      const todaysFight = gs.schedule.find((f) => f.day <= gs.day);
+      if (todaysFight) {
+        const fname = gs.fighters.find((f) => f.id === todaysFight.fighterId)?.name ?? 'Your fighter';
+        pushDialog({
+          speaker: 'PROMOTER', text: `FIGHT DAY! ${fname} vs ${todaysFight.opponent.name}!`, choices: [
+            { label: 'ARENA', action: 'start_fight' }, { label: 'Wait', action: 'dismiss' },
+          ]
+        });
+      }
     }
-    const connectionBonus = (manager.connections ?? 5) > 7 ? " I got some premium offers for you." : "";
-    pushDialog({
-      speaker: 'PROMOTER',
-      text: `I've been making calls. Your gym's reputation is at ${gym.reputation}%.${connectionBonus} Ready to look at some fights?`,
-      choices: [
-        { label: 'Show me the fights', action: 'open_calendar' },
-        { label: 'Maybe next time', action: 'dismiss' },
-      ],
-    });
-  };
+  });
 
-  const openContracts = () => {
-    if (fighters.length === 0) {
-      pushDialog({ speaker: 'CONTRACTS', text: "No fighters under contract. Scout some talent first." });
-      return;
-    }
-    const contractInfo = fighters.map(f =>
-      `${f.name}: ${f.contractWeeksLeft}wk left, $${f.salary}/wk`
-    ).join('\n');
-    pushDialog({
-      speaker: 'CONTRACTS',
-      text: `Active contracts:\n${contractInfo}`,
-      choices: [
-        { label: 'View full roster', action: 'open_roster' },
-        { label: 'Back', action: 'dismiss' },
-      ],
-    });
-  };
-
-  const openSettings = () => {
-    pushDialog({
-      speaker: 'SETTINGS',
-      text: `Day ${day} — Week ${week}\n${gymLabel} | ${fighters.length} fighter${fighters.length !== 1 ? 's' : ''}`,
-      choices: [
-        { label: 'Save Game', action: 'save_game' },
-        { label: 'Back', action: 'dismiss' },
-      ],
-    });
-  };
-
-  // ── Phone menu button definitions ──
-  const phoneButtons = [
-    { label: 'FIGHTS', icon: '🥊', action: openFights, alert: hasFightToday },
-    { label: 'SCOUT', icon: '🔍', action: openScout, alert: false },
-    { label: 'TRAIN', icon: '🏋️', action: openTraining, alert: false },
-    { label: 'OFFICE', icon: '🏠', action: openOffice, alert: false },
-    { label: 'GYM', icon: 'GYM', action: openGym, alert: false, isText: true },
-    { label: 'VISITS', icon: '🚶', action: openVisits, alert: false },
-    { label: 'PROMOTOR', icon: '🤝', action: openPromoter, alert: false },
-    { label: 'CONTRACTS', icon: '📋', action: openContracts, alert: false },
-    { label: 'SETTINGS', icon: '⚙️', action: openSettings, alert: false },
+  // ── App grid: 3x3 matching mockup layout ──
+  const appGrid = [
+    { label: 'FIGHTS', icon: '/icons/fights.svg', action: openFights, alert: hasFightToday },
+    { label: 'GYM', icon: '/icons/gym.svg', action: openGym, alert: false },
+    { label: 'TRAIN', icon: '/icons/train.svg', action: openTraining, alert: false },
+    { label: 'SCOUT', icon: '/icons/scout.png', action: openScout, alert: false },
+    { label: 'OFFICE', icon: '/icons/office.svg', action: openOffice, alert: false },
+    { label: 'PROMOTOR', icon: '/icons/promotor.svg', action: openPromoter, alert: false },
+    { label: 'VISIT', icon: '/icons/visits.svg', action: openVisits, alert: false },
+    { label: 'CONTRACTS', icon: '/icons/contracts.svg', action: openContracts, alert: false },
+    { label: '>FORWARD', icon: '/icons/dayforward.svg', action: handleForward, alert: false },
   ];
+
+  // ── Dock bar: 3 bottom icons ──
+  const dockItems = [
+    { icon: '/icons/settings.svg', action: act(() => pushDialog({ speaker: 'SETTINGS', text: `Day ${day} — Week ${week}`, choices: [{ label: 'Save', action: 'save_game' }, { label: 'Back', action: 'dismiss' }] })) },
+    { icon: '/icons/notifications.svg', action: act(() => pushDialog({ speaker: 'NEWS', text: nextFight ? `Next fight in ${nextFight.day - day} days.` : 'No upcoming events.' })) },
+    { icon: '/icons/home.svg', action: act(() => { }) },
+  ];
+
+  const phoneUI = (
+    <div className="phone-device">
+      {/* Phone bezel frame as background */}
+      <img src="/icons/phone-hub.svg" alt="" className="phone-bezel" />
+
+      {/* Phone screen content */}
+      <div className="phone-content">
+        {/* Status bar */}
+        <div className="phone-status">
+          <span>mma-fi</span>
+          <span>▮▮▮</span>
+          <span>▊▊▊</span>
+        </div>
+
+        {/* 3x3 App grid */}
+        <div className="phone-app-grid">
+          {appGrid.map((app) => (
+            <button key={app.label} className={`phone-app${app.alert ? ' phone-app--alert' : ''}`} onClick={app.action}>
+              <div className="phone-app-icon">
+                <img src={app.icon} alt="" draggable={false} />
+              </div>
+              <span className="phone-app-label">{app.label}</span>
+              {app.alert && <span className="phone-app-badge">!</span>}
+            </button>
+          ))}
+        </div>
+
+        {/* Dock bar */}
+        <div className="phone-dock">
+          {dockItems.map((d, i) => (
+            <button key={i} className="phone-dock-btn" onClick={d.action}>
+              <img src={d.icon} alt="" draggable={false} />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="hub-root">
-      {/* ── LEFT: Office backdrop + HUD overlay ── */}
+      {/* Office scene */}
       <div className="hub-office">
-        {/* Combo SVG: desk + character pre-composited (no blend hacks needed) */}
-        {manager.preset && manager.id ? (
-          <img
-            src={`/bg/combo-${manager.id}.svg`}
-            alt=""
-            className="hub-combo-bg"
-            onError={(e) => {
-              // Fallback to old office.png if combo doesn't exist
-              (e.target as HTMLImageElement).src = '/bg/office.png';
-              (e.target as HTMLImageElement).className = 'hub-office-bg';
-            }}
-          />
-        ) : (
-          <img src="/bg/office.png" alt="" className="hub-office-bg" />
-        )}
+        <img src="/bg/office.png" alt="" className="hub-office-bg" />
+        <div className="hub-character">
+          {manager.sprite ? (
+            <img src={manager.sprite} alt={manager.name} className="hub-character-img" />
+          ) : manager.portrait ? (
+            <img src={manager.portrait} alt={manager.name} className="hub-character-img" />
+          ) : (
+            <div className="hub-character-placeholder">
+              <div className="hub-character-silhouette">👤</div>
+            </div>
+          )}
+        </div>
+        <img src="/bg/desk.svg" alt="" className="hub-desk-fg" />
 
-        {/* ── HUD overlay (top-left) ── */}
+        {/* HUD */}
         <div className="hub-hud">
           <div className="hub-hud-row">
             <span className="hub-hud-label">Money</span>
-            <div className="hub-hud-bar">
-              <div
-                className="hub-hud-fill hub-hud-fill--money"
-                style={{ width: `${moneyPercent}%` }}
-              />
-            </div>
+            <div className="hub-hud-bar"><div className="hub-hud-fill hub-hud-fill--money" style={{ width: `${moneyPercent}%` }} /></div>
             <span className="hub-hud-value">${money.toLocaleString()}</span>
           </div>
           <div className="hub-hud-row">
-            <span className="hub-hud-label">Fighter<br />Morale</span>
-            <div className="hub-hud-bar">
-              <div
-                className="hub-hud-fill hub-hud-fill--morale"
-                style={{ width: `${moralePercent}%` }}
-              />
-            </div>
+            <span className="hub-hud-label">Morale</span>
+            <div className="hub-hud-bar"><div className="hub-hud-fill hub-hud-fill--morale" style={{ width: `${moralePercent}%` }} /></div>
             {topFighter && <span className="hub-hud-value">{moralePercent}%</span>}
           </div>
           <div className="hub-hud-row">
             <span className="hub-hud-label">Rep</span>
-            <div className="hub-hud-bar">
-              <div
-                className="hub-hud-fill hub-hud-fill--rep"
-                style={{ width: `${reputationPercent}%` }}
-              />
-            </div>
-            {reputationPercent < 30 && <span className="hub-hud-alert">!</span>}
+            <div className="hub-hud-bar"><div className="hub-hud-fill hub-hud-fill--rep" style={{ width: `${reputationPercent}%` }} /></div>
           </div>
         </div>
+        <div className="hub-day-badge">DAY {day} &middot; WEEK {week}</div>
 
-        {/* Day / Week badge */}
-        <div className="hub-day-badge">
-          DAY {day} &middot; WEEK {week}
-        </div>
+        {/* Mobile toggle */}
+        <button className="hub-phone-toggle" onClick={() => setMobileMenuOpen(true)}>
+          <img src="/icons/manage.svg" alt="Menu" draggable={false} />
+        </button>
       </div>
 
-      {/* ── RIGHT: Phone interface ── */}
-      <div className="hub-phone-area">
-        <div className="hub-phone">
-          {/* Phone bezel top */}
-          <div className="phone-notch" />
+      {/* Desktop: phone floats in the right panel */}
+      <div className="hub-phone-panel">
+        {phoneUI}
+      </div>
 
-          <div className="phone-screen">
-            {/* Status bar */}
-            <div className="phone-statusbar">
-              <span className="phone-carrier">📶 MMA-Fi</span>
-              <span className="phone-time">{displayTime}</span>
-            </div>
-
-            {/* Menu header */}
-            <div className="phone-menu-title">MENU</div>
-
-            {/* 3x3 button grid */}
-            <div className="phone-grid">
-              {phoneButtons.map((btn) => (
-                <button
-                  key={btn.label}
-                  className={`phone-btn${btn.alert ? ' phone-btn--alert' : ''}`}
-                  onClick={btn.action}
-                >
-                  <span className={`phone-btn-icon${btn.isText ? ' phone-btn-icon--text' : ''}`}>
-                    {btn.icon}
-                  </span>
-                  <span className="phone-btn-label">{btn.label}</span>
-                  {btn.alert && <span className="phone-btn-badge">!</span>}
-                </button>
-              ))}
-            </div>
-
-            {/* Bottom nav */}
-            <div className="phone-nav">
-              <div className="phone-dots">
-                <span className="phone-dot phone-dot--active" />
-                <span className="phone-dot" />
-                <span className="phone-dot" />
-              </div>
-              <div className="phone-home-btn" onClick={() => {
-                advanceDay();
-                const gs = useGameStore.getState().gameState;
-                if (gs) {
-                  const todaysFight = gs.schedule.find((f) => f.day <= gs.day);
-                  if (todaysFight) {
-                    const fname = gs.fighters.find((f) => f.id === todaysFight.fighterId)?.name ?? 'Your fighter';
-                    pushDialog({
-                      speaker: 'PROMOTER',
-                      text: `FIGHT DAY! ${fname} vs ${todaysFight.opponent.name}! Get to the arena!`,
-                      choices: [
-                        { label: 'HEAD TO ARENA', action: 'start_fight' },
-                        { label: 'I need a minute', action: 'dismiss' },
-                      ],
-                    });
-                  }
-                }
-              }}>
-                <span className="phone-home-icon">▶</span>
-                <span className="phone-home-label">NEXT DAY</span>
-              </div>
-            </div>
+      {/* Mobile: full-screen phone overlay */}
+      {mobileMenuOpen && (
+        <div className="hub-phone-overlay" onClick={() => setMobileMenuOpen(false)}>
+          <div className="hub-phone-overlay-inner" onClick={(e) => e.stopPropagation()}>
+            <button className="hub-phone-overlay-close" onClick={() => setMobileMenuOpen(false)}>✕</button>
+            {phoneUI}
           </div>
         </div>
-
-        {/* Fight countdown outside phone */}
-        {nextFight && (
-          <div className="hub-fight-countdown">
-            NEXT FIGHT IN {nextFight.day - day}D
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
