@@ -17,15 +17,18 @@ import {
   createDefaultFighterTiers,
   createDefaultGymLevels,
 } from '../types/admin';
+import { fetchBundle, saveBundle, logActivity } from '../services/adminApi';
+import type { SyncStatus } from '../services/adminApi';
 
 const STORAGE_KEY = 'mma-admin-content';
 const MAX_UNDO = 20;
+const SAVE_DEBOUNCE_MS = 1500;
 
 // ── Migration ────────────────────────────────────────────
 
 function migrateBundle(raw: any): AdminContentBundle {
   const v = raw.version ?? 1;
-  let bundle = { ...raw };
+  const bundle = { ...raw };
 
   if (v < 2) {
     bundle.commentary = bundle.commentary ?? [];
@@ -43,12 +46,10 @@ function migrateBundle(raw: any): AdminContentBundle {
   bundle.namePool = bundle.namePool ?? { firstNames: [], lastNames: [], nicknames: [] };
   bundle.assets = bundle.assets ?? [];
 
-  // Future migrations: if (v < 3) { ... }
-
   return bundle as AdminContentBundle;
 }
 
-// ── Storage ──────────────────────────────────────────────
+// ── localStorage ──────────────────────────────────────────
 
 function loadFromStorage(): AdminContentBundle {
   try {
@@ -67,7 +68,34 @@ function saveToStorage(bundle: AdminContentBundle) {
   } catch { /* storage full or blocked */ }
 }
 
-// ── Admin Store ─────────────────────────────────────────────
+// ── Debounced API Save ──────────────────────────────────
+
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+function debouncedApiSave(bundle: AdminContentBundle) {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    useAdminStore.setState({ syncStatus: 'saving' });
+    const ok = await saveBundle(bundle);
+    const prev = useAdminStore.getState();
+    useAdminStore.setState({
+      syncStatus: ok ? 'idle' : 'error',
+      lastSyncedAt: ok ? Date.now() : prev.lastSyncedAt,
+      syncError: ok ? null : 'Failed to save to database',
+    });
+  }, SAVE_DEBOUNCE_MS);
+}
+
+// ── Activity metadata ───────────────────────────────────
+
+interface CommitActivity {
+  action: string;
+  entityType?: string;
+  entityId?: string;
+  entityName?: string;
+}
+
+// ── Store Types ─────────────────────────────────────────
 
 export type AdminSection =
   | 'dashboard'
@@ -89,8 +117,17 @@ interface AdminStore {
   undoStack: AdminContentBundle[];
   lastSaved: number;
 
+  // DB sync state
+  syncStatus: SyncStatus;
+  dbConnected: boolean;
+  lastSyncedAt: number | null;
+  syncError: string | null;
+
   setSection: (section: AdminSection) => void;
   setEditingId: (id: string | null) => void;
+
+  // DB init
+  initFromApi: () => Promise<void>;
 
   // Undo
   pushUndo: () => void;
@@ -156,11 +193,29 @@ interface AdminStore {
   getStorageUsage: () => { used: number; limit: number; percentage: number };
 }
 
-// Helper to commit a bundle change (saves + updates state + records timestamp)
-function commit(set: Function, updated: AdminContentBundle) {
+// ── Commit helper ───────────────────────────────────────
+// Saves to localStorage (sync), updates Zustand state,
+// fires debounced DB save if connected, and logs activity.
+
+function commit(
+  set: Function,
+  get: () => AdminStore,
+  updated: AdminContentBundle,
+  activity?: CommitActivity,
+) {
   saveToStorage(updated);
   set({ bundle: updated, lastSaved: Date.now() });
+
+  if (get().dbConnected) {
+    debouncedApiSave(updated);
+  }
+
+  if (activity) {
+    logActivity(activity);
+  }
 }
+
+// ── Store ───────────────────────────────────────────────
 
 export const useAdminStore = create<AdminStore>((set, get) => ({
   bundle: loadFromStorage(),
@@ -169,8 +224,50 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
   undoStack: [],
   lastSaved: Date.now(),
 
+  // DB sync — starts offline; initFromApi() will update
+  syncStatus: 'offline',
+  dbConnected: false,
+  lastSyncedAt: null,
+  syncError: null,
+
   setSection: (section) => set({ activeSection: section, editingId: null }),
   setEditingId: (id) => set({ editingId: id }),
+
+  // ── DB Init ──
+
+  initFromApi: async () => {
+    set({ syncStatus: 'loading', syncError: null });
+    const result = await fetchBundle();
+
+    if (result.status === 'ok') {
+      // DB has data — use it as source of truth
+      const migrated = migrateBundle(result.data.content);
+      saveToStorage(migrated);
+      set({
+        bundle: migrated,
+        syncStatus: 'idle',
+        dbConnected: true,
+        lastSyncedAt: Date.now(),
+        syncError: null,
+      });
+    } else if (result.status === 'empty') {
+      // DB exists but empty — auto-push localStorage data
+      set({ dbConnected: true, syncStatus: 'saving' });
+      const currentBundle = get().bundle;
+      const ok = await saveBundle(currentBundle);
+      set({
+        syncStatus: ok ? 'idle' : 'error',
+        lastSyncedAt: ok ? Date.now() : null,
+        syncError: ok ? null : 'Failed to push initial data to database',
+      });
+      if (ok) {
+        logActivity({ action: 'auto-migrate', entityType: 'bundle' });
+      }
+    } else {
+      // Offline — keep using localStorage only
+      set({ syncStatus: 'offline', dbConnected: false, syncError: null });
+    }
+  },
 
   // ── Undo ──
 
@@ -186,6 +283,10 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     const prev = stack.pop()!;
     saveToStorage(prev);
     set({ bundle: prev, undoStack: stack, lastSaved: Date.now() });
+    if (get().dbConnected) {
+      debouncedApiSave(prev);
+    }
+    logActivity({ action: 'undo', entityType: 'bundle' });
   },
 
   canUndo: () => get().undoStack.length > 0,
@@ -196,7 +297,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, scenarios: [...b.scenarios, s] };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'add', entityType: 'scenario', entityId: s.id, entityName: s.name });
     set({ editingId: s.id });
   },
 
@@ -209,14 +310,15 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
         s.id === id ? { ...s, ...updates, updatedAt: Date.now() } : s
       ),
     };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'update', entityType: 'scenario', entityId: id });
   },
 
   removeScenario: (id) => {
     get().pushUndo();
     const b = get().bundle;
+    const name = b.scenarios.find((s) => s.id === id)?.name;
     const updated = { ...b, scenarios: b.scenarios.filter((s) => s.id !== id) };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'remove', entityType: 'scenario', entityId: id, entityName: name });
     set({ editingId: null });
   },
 
@@ -226,7 +328,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, venues: [...b.venues, v] };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'add', entityType: 'venue', entityId: v.id, entityName: v.name });
     set({ editingId: v.id });
   },
 
@@ -239,14 +341,15 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
         v.id === id ? { ...v, ...updates, updatedAt: Date.now() } : v
       ),
     };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'update', entityType: 'venue', entityId: id });
   },
 
   removeVenue: (id) => {
     get().pushUndo();
     const b = get().bundle;
+    const name = b.venues.find((v) => v.id === id)?.name;
     const updated = { ...b, venues: b.venues.filter((v) => v.id !== id) };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'remove', entityType: 'venue', entityId: id, entityName: name });
     set({ editingId: null });
   },
 
@@ -256,7 +359,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, sponsors: [...b.sponsors, s] };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'add', entityType: 'sponsor', entityId: s.id, entityName: s.name });
     set({ editingId: s.id });
   },
 
@@ -269,14 +372,15 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
         s.id === id ? { ...s, ...updates, updatedAt: Date.now() } : s
       ),
     };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'update', entityType: 'sponsor', entityId: id });
   },
 
   removeSponsor: (id) => {
     get().pushUndo();
     const b = get().bundle;
+    const name = b.sponsors.find((s) => s.id === id)?.name;
     const updated = { ...b, sponsors: b.sponsors.filter((s) => s.id !== id) };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'remove', entityType: 'sponsor', entityId: id, entityName: name });
     set({ editingId: null });
   },
 
@@ -286,7 +390,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, dialogs: [...b.dialogs, d] };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'add', entityType: 'dialog', entityId: d.id, entityName: d.action });
     set({ editingId: d.id });
   },
 
@@ -299,14 +403,15 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
         d.id === id ? { ...d, ...updates, updatedAt: Date.now() } : d
       ),
     };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'update', entityType: 'dialog', entityId: id });
   },
 
   removeDialog: (id) => {
     get().pushUndo();
     const b = get().bundle;
+    const name = b.dialogs.find((d) => d.id === id)?.action;
     const updated = { ...b, dialogs: b.dialogs.filter((d) => d.id !== id) };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'remove', entityType: 'dialog', entityId: id, entityName: name });
     set({ editingId: null });
   },
 
@@ -316,7 +421,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, commentary: [...b.commentary, c] };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'add', entityType: 'commentary', entityId: c.id });
     set({ editingId: c.id });
   },
 
@@ -329,14 +434,14 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
         c.id === id ? { ...c, ...updates, updatedAt: Date.now() } : c
       ),
     };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'update', entityType: 'commentary', entityId: id });
   },
 
   removeCommentary: (id) => {
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, commentary: b.commentary.filter((c) => c.id !== id) };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'remove', entityType: 'commentary', entityId: id });
     set({ editingId: null });
   },
 
@@ -346,14 +451,14 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, gameSettings: { ...b.gameSettings, ...updates } };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'update', entityType: 'settings' });
   },
 
   resetGameSettings: () => {
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, gameSettings: createDefaultGameSettings() };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'reset', entityType: 'settings' });
   },
 
   // ── Fighter Tiers ──
@@ -362,7 +467,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, fighterTiers: [...b.fighterTiers, t] };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'add', entityType: 'fighterTier', entityId: t.id, entityName: t.name });
     set({ editingId: t.id });
   },
 
@@ -375,14 +480,15 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
         t.id === id ? { ...t, ...updates } : t
       ),
     };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'update', entityType: 'fighterTier', entityId: id });
   },
 
   removeFighterTier: (id) => {
     get().pushUndo();
     const b = get().bundle;
+    const name = b.fighterTiers.find((t) => t.id === id)?.name;
     const updated = { ...b, fighterTiers: b.fighterTiers.filter((t) => t.id !== id) };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'remove', entityType: 'fighterTier', entityId: id, entityName: name });
     set({ editingId: null });
   },
 
@@ -390,7 +496,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, fighterTiers: tiers };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'reorder', entityType: 'fighterTier' });
   },
 
   // ── Gym Levels ──
@@ -399,7 +505,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, gymLevels: [...b.gymLevels, g] };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'add', entityType: 'gymLevel', entityId: g.id, entityName: g.name });
     set({ editingId: g.id });
   },
 
@@ -412,14 +518,15 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
         g.id === id ? { ...g, ...updates } : g
       ),
     };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'update', entityType: 'gymLevel', entityId: id });
   },
 
   removeGymLevel: (id) => {
     get().pushUndo();
     const b = get().bundle;
+    const name = b.gymLevels.find((g) => g.id === id)?.name;
     const updated = { ...b, gymLevels: b.gymLevels.filter((g) => g.id !== id) };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'remove', entityType: 'gymLevel', entityId: id, entityName: name });
     set({ editingId: null });
   },
 
@@ -427,7 +534,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, gymLevels: levels };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'reorder', entityType: 'gymLevel' });
   },
 
   // ── Names ──
@@ -440,7 +547,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     for (const n of names) existing.add(n.trim());
     pool[type] = Array.from(existing).filter(Boolean);
     const updated = { ...b, namePool: pool };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'add', entityType: 'namePool', entityName: type });
   },
 
   removeName: (type, name) => {
@@ -449,7 +556,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     const pool = { ...b.namePool };
     pool[type] = pool[type].filter((n) => n !== name);
     const updated = { ...b, namePool: pool };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'remove', entityType: 'namePool', entityName: type });
   },
 
   // ── Assets ──
@@ -458,14 +565,14 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, assets: [...b.assets, a] };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'add', entityType: 'asset', entityId: a.id });
   },
 
   removeAsset: (id) => {
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, assets: b.assets.filter((a) => a.id !== id) };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'remove', entityType: 'asset', entityId: id });
   },
 
   updateAssetCategory: (id, category) => {
@@ -475,7 +582,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
       ...b,
       assets: b.assets.map((a) => a.id === id ? { ...a, category } : a),
     };
-    commit(set, updated);
+    commit(set, get, updated, { action: 'update', entityType: 'asset', entityId: id });
   },
 
   // ── Import/Export ──
@@ -492,6 +599,10 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
       const migrated = migrateBundle(parsed);
       saveToStorage(migrated);
       set({ bundle: migrated, lastSaved: Date.now() });
+      if (get().dbConnected) {
+        debouncedApiSave(migrated);
+      }
+      logActivity({ action: 'import', entityType: 'bundle' });
       return true;
     } catch {
       return false;
@@ -503,6 +614,10 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     const fresh = { ...EMPTY_ADMIN_BUNDLE };
     saveToStorage(fresh);
     set({ bundle: fresh, editingId: null, lastSaved: Date.now() });
+    if (get().dbConnected) {
+      debouncedApiSave(fresh);
+    }
+    logActivity({ action: 'reset', entityType: 'bundle' });
   },
 
   // ── Storage Info ──
@@ -511,7 +626,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     try {
       const data = localStorage.getItem(STORAGE_KEY) || '';
       const used = new Blob([data]).size;
-      const limit = 5 * 1024 * 1024; // ~5MB typical localStorage limit
+      const limit = 5 * 1024 * 1024;
       return { used, limit, percentage: Math.round((used / limit) * 100) };
     } catch {
       return { used: 0, limit: 5 * 1024 * 1024, percentage: 0 };

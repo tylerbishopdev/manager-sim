@@ -1754,6 +1754,67 @@ button, [role="button"], .menu-item, .sel-card, .create-thumb {
   color: #484f58;
 }
 
+/* ── Activity log ── */
+
+.admin-activity-section {
+  margin-top: 16px;
+}
+
+.admin-section-subtitle {
+  font-size: 13px;
+  color: #c9d1d9;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.admin-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-activity-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 4px;
+  font-size: 11px;
+  color: #8b949e;
+}
+
+.admin-activity-action {
+  font-weight: 600;
+  color: #58a6ff;
+  text-transform: uppercase;
+  font-size: 10px;
+  min-width: 60px;
+}
+
+.admin-activity-entity {
+  color: #c9d1d9;
+  background: rgba(255,255,255,0.06);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+
+.admin-activity-name {
+  color: #8b949e;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-activity-time {
+  color: #484f58;
+  font-size: 10px;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
 /* ── Editor layout (list + detail) ── */
 
 .admin-editor-header {

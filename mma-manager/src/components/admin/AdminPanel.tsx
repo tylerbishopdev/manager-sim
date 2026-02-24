@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useAdminStore } from '../../store/adminStore';
 import type { AdminSection } from '../../store/adminStore';
 import AdminDashboard from './AdminDashboard';
@@ -31,7 +32,12 @@ interface Props {
 }
 
 export default function AdminPanel({ onBack }: Props) {
-  const { activeSection, setSection } = useAdminStore();
+  const { activeSection, setSection, initFromApi } = useAdminStore();
+
+  // Try to connect to DB on mount
+  useEffect(() => {
+    initFromApi();
+  }, [initFromApi]);
 
   return (
     <div className="admin-panel">

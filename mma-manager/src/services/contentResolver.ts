@@ -1,9 +1,9 @@
 /**
  * Content Resolution Layer
  *
- * Bridge between admin-created content (localStorage) and game systems.
- * Each getter reads admin bundle and merges with hardcoded fallback data.
- * Admin content takes priority; hardcoded data serves as defaults.
+ * Bridge between admin-created content and game systems.
+ * Reads from Zustand store (single source of truth) and merges
+ * with hardcoded fallback data. Admin content takes priority.
  */
 
 import type {
@@ -19,7 +19,6 @@ import type {
   NamePool,
 } from '../types/admin';
 import {
-  EMPTY_ADMIN_BUNDLE,
   createDefaultGameSettings,
   createDefaultFighterTiers,
   createDefaultGymLevels,
@@ -31,22 +30,12 @@ import {
   VENUE_NAMES,
   SPONSOR_NAMES,
 } from '../data/fighterNames';
+import { useAdminStore } from '../store/adminStore';
 
-const STORAGE_KEY = 'mma-admin-content';
-
-// ── Read admin bundle from localStorage ──────────────────
+// ── Read admin bundle from Zustand store ─────────────────
 
 function getAdminBundle(): AdminContentBundle {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && (parsed.version || parsed.scenarios)) {
-        return parsed as AdminContentBundle;
-      }
-    }
-  } catch { /* ignore */ }
-  return EMPTY_ADMIN_BUNDLE;
+  return useAdminStore.getState().bundle;
 }
 
 // ── Hardcoded fallback event templates ───────────────────
