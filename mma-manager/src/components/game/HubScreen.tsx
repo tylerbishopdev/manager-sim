@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { GYM_UPGRADES } from '../../types/gameplay';
+import { isAdminContentActive } from '../../services/contentResolver';
 
 export default function HubScreen() {
   const { gameState, pushDialog, advanceDay, manager } = useGameStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const customContentActive = useMemo(() => isAdminContentActive(), []);
 
   if (!gameState || !manager) return null;
 
@@ -215,6 +218,11 @@ export default function HubScreen() {
           </div>
         </div>
         <div className="hub-day-badge">DAY {day} &middot; WEEK {week}</div>
+
+        {/* Custom content indicator */}
+        {customContentActive && (
+          <div className="hub-custom-content-badge">Custom Content Active</div>
+        )}
 
         {/* Mobile toggle */}
         <button className="hub-phone-toggle" onClick={() => setMobileMenuOpen(true)}>

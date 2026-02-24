@@ -2,11 +2,18 @@ import { useState, useEffect } from 'react';
 
 interface Props {
   onStart: () => void;
+  onAdmin?: () => void;
 }
 
-export default function TitleScreen({ onStart }: Props) {
+export default function TitleScreen({ onStart, onAdmin }: Props) {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
+
+  const menuItems = [
+    { label: 'NEW GAME', action: onStart, enabled: true },
+    { label: 'CONTINUE', action: undefined, enabled: false },
+    { label: 'GAME BUILDER', action: onAdmin, enabled: !!onAdmin },
+  ];
 
   useEffect(() => {
     const t = setTimeout(() => setShowMenu(true), 1200);
@@ -16,13 +23,16 @@ export default function TitleScreen({ onStart }: Props) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (!showMenu) return;
-      if (e.key === 'ArrowDown') setSelectedIdx((i) => Math.min(i + 1, 2));
+      if (e.key === 'ArrowDown') setSelectedIdx((i) => Math.min(i + 1, menuItems.length - 1));
       if (e.key === 'ArrowUp') setSelectedIdx((i) => Math.max(i - 1, 0));
-      if (e.key === 'Enter' && selectedIdx === 0) onStart();
+      if (e.key === 'Enter') {
+        const item = menuItems[selectedIdx];
+        if (item.enabled && item.action) item.action();
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [showMenu, selectedIdx, onStart]);
+  }, [showMenu, selectedIdx, onStart, onAdmin]);
 
   return (
     <div className="scanlines title-screen">
@@ -45,20 +55,20 @@ export default function TitleScreen({ onStart }: Props) {
       {/* Menu */}
       {showMenu && (
         <div className="animate-slideUp title-menu">
-          {['NEW GAME', 'CONTINUE', 'OPTIONS'].map((label, i) => (
+          {menuItems.map((item, i) => (
             <div
-              key={label}
+              key={item.label}
               role="button"
               tabIndex={0}
               className={`menu-item ${selectedIdx === i ? 'selected' : ''}`}
               onClick={() => {
                 setSelectedIdx(i);
-                if (i === 0) onStart();
+                if (item.enabled && item.action) item.action();
               }}
               onMouseEnter={() => setSelectedIdx(i)}
-              style={{ opacity: i === 0 ? 1 : 0.4 }}
+              style={{ opacity: item.enabled ? 1 : 0.4 }}
             >
-              {label}
+              {item.label}
             </div>
           ))}
         </div>

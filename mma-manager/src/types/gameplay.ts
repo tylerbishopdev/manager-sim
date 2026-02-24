@@ -233,6 +233,9 @@ export interface GameState {
   // Career stats
   championsWon: number;
   fightHistory: FightOutcome[];
+
+  // Scenario tracking (scenarioId → last triggered day)
+  scenarioHistory: Record<string, number>;
 }
 
 export interface DialogMessage {
