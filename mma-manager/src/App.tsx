@@ -6,6 +6,7 @@ import CharacterSelect from './components/CharacterSelect';
 import CharacterCreator from './components/CharacterCreator';
 import ConfirmScreen from './components/ConfirmScreen';
 import GameScreen from './components/game/GameScreen';
+import AdminPanel from './components/admin/AdminPanel';
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('title');
@@ -35,7 +36,12 @@ export default function App() {
 
   switch (screen) {
     case 'title':
-      return <TitleScreen onStart={() => setScreen('select')} />;
+      return (
+        <TitleScreen
+          onStart={() => setScreen('select')}
+          onAdmin={() => setScreen('admin')}
+        />
+      );
     case 'select':
       return (
         <CharacterSelect
@@ -59,6 +65,8 @@ export default function App() {
           onBack={() => setScreen(selectedManager.preset ? 'select' : 'create')}
         />
       ) : null;
+    case 'admin':
+      return <AdminPanel onBack={() => setScreen('title')} />;
     default:
       return null;
   }

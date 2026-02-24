@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useGameStore } from '../../store/gameStore';
+import { getDialogOverrides } from '../../services/contentResolver';
 
 export default function DialogBox() {
   const { gameState, popDialog, setScreen, pushDialog, spendMoney, updateFighter, upgradeGym, hireStaff } = useGameStore();
@@ -8,6 +9,26 @@ export default function DialogBox() {
 
   const handleChoice = useCallback((action: string) => {
     popDialog();
+
+    // ── Check admin dialog overrides first ──
+    const overrides = getDialogOverrides();
+    if (overrides[action]) {
+      const d = overrides[action];
+      const textVariants = d.textVariants ?? [];
+      if (textVariants.length > 0) {
+        const text = textVariants[Math.floor(Math.random() * textVariants.length)]
+          .replace(/\{playerName\}/g, 'Boss');
+        pushDialog({
+          speaker: d.speaker,
+          text,
+          choices: d.choices?.map((c) => ({
+            label: c.label,
+            action: c.action ?? 'dismiss',
+          })),
+        });
+        return;
+      }
+    }
 
     // ── Screen navigation ──
     if (action.startsWith('screen:')) {

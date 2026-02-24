@@ -7,6 +7,8 @@ import type {
 } from '../types/gameplay';
 import { GYM_UPGRADES } from '../types/gameplay';
 import { generateFighter } from '../services/fighterGen';
+import { getScenarioPool, getSponsorPool, getGameSettings } from '../services/contentResolver';
+import type { ScenarioTemplate } from '../types/admin';
 
 // ── Helpers ─────────────────────────────────────────────
 
@@ -17,22 +19,6 @@ function rng(min: number, max: number) {
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
-
-const SPONSOR_NAMES = [
-  'MEGA PROTEIN 9000', 'IRON FIST ENERGY', 'TAP-OUT WEAR', 'CAGE FURY GEAR',
-  'KNOCKOUT SUPPLEMENTS', 'GRAPPLE GRIPS', 'FIGHT MILK INC', 'SAVAGE NUTRITION',
-  'WARRIOR WEAR', 'OCTAGON OPTICS', 'BLOOD & GUTS GYM SUPPLY', 'COMBAT CREATINE',
-];
-
-const EVENT_TEMPLATES = [
-  { type: 'injury' as const, title: 'TRAINING INJURY', desc: (f: string) => `${f} tweaked their knee during sparring.`, morale: -10, healthCost: 15, injuryDays: 3 },
-  { type: 'drama' as const, title: 'LOCKER ROOM BEEF', desc: (f: string) => `${f} got into an argument with another fighter. Morale is down.`, morale: -15, healthCost: 0, injuryDays: 0 },
-  { type: 'opportunity' as const, title: 'MEDIA APPEARANCE', desc: (f: string) => `A local TV show wants to feature ${f}. Fame boost incoming!`, morale: 10, healthCost: 0, injuryDays: 0, fameGain: 8 },
-  { type: 'drama' as const, title: 'RIVAL GYM TRASH TALK', desc: (_f: string) => `A rival gym called your operation a joke on social media.`, morale: -5, healthCost: 0, injuryDays: 0, repCost: 3 },
-  { type: 'opportunity' as const, title: 'FAN MEET & GREET', desc: (f: string) => `${f} did a fan meet and greet. Fans loved it!`, morale: 15, healthCost: 0, injuryDays: 0, fameGain: 5 },
-  { type: 'news' as const, title: 'EQUIPMENT BREAKDOWN', desc: (_f: string) => `Some gym equipment broke down. Repairs needed.`, morale: 0, healthCost: 0, injuryDays: 0, moneyCost: 500 },
-  { type: 'opportunity' as const, title: 'SPONSORSHIP OFFER', desc: (_f: string) => `A brand wants to sponsor your gym!`, morale: 5, healthCost: 0, injuryDays: 0, sponsorOffer: true },
-];
 
 // ── Staff cost/effects ──────────────────────────────────
 
@@ -101,16 +87,21 @@ function createInitialState(_manager: ManagerCharacter): GameState {
 
     championsWon: 0,
     fightHistory: [],
+    scenarioHistory: {},
   };
 }
 
 // ── Generate sponsor offer ───────────────────────────────
 
 function generateSponsor(gymLevel: number): SponsorDeal {
-  const tier = Math.min(gymLevel, 3);
-  const weekly = rng(100, 200) * tier;
-  const fightB = rng(200, 500) * tier;
-  const weeks = rng(8, 20);
+  const pool = getSponsorPool();
+  const template = pick(pool);
+
+  // Use admin-defined ranges if available, else scale by gym level
+  const tier = template.tier ?? Math.min(gymLevel, 3);
+  const weekly = rng(template.weeklyPaymentRange[0], template.weeklyPaymentRange[1]);
+  const fightB = rng(template.fightBonusRange[0], template.fightBonusRange[1]);
+  const weeks = rng(template.durationWeeksRange[0], template.durationWeeksRange[1]);
 
   const reqs: (string | undefined)[] = [
     undefined, undefined, // no requirement
@@ -121,12 +112,12 @@ function generateSponsor(gymLevel: number): SponsorDeal {
 
   return {
     id: 'sponsor-' + Date.now() + '-' + rng(0, 9999),
-    name: pick(SPONSOR_NAMES),
+    name: template.name,
     weeklyPayment: weekly,
     fightBonus: fightB,
     weeksLeft: weeks,
-    requirement: pick(reqs),
-    requirementMet: true, // starts met, checked each week
+    requirement: template.requirement ?? pick(reqs),
+    requirementMet: true,
   };
 }
 
@@ -348,6 +339,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     let money = gs.money;
     let sponsors = [...gs.sponsors];
     let sponsorIncome = 0;
+    let gym = { ...gs.gym };
+    let scenarioHistory = { ...(gs.scenarioHistory ?? {}) };
 
     if (isNewWeek) {
       const salaries = fighters.reduce((sum, f) => sum + f.salary, 0);
@@ -406,37 +399,70 @@ export const useGameStore = create<GameStore>((set, get) => ({
         });
       }
 
-      // ── 4. Random event (20% chance per day, higher on week ends) ──
-      if (Math.random() < 0.35 && fighters.length > 0) {
-        const template = pick(EVENT_TEMPLATES);
-        const targetFighter = pick(fighters);
-
-        dialogs.push({
-          speaker: template.title,
-          text: template.desc(targetFighter.name),
+      // ── 4. Random event (uses admin scenario pool via contentResolver) ──
+      const weeklyChance = getGameSettings().eventChanceWeekly / 100;
+      if (Math.random() < weeklyChance && fighters.length > 0) {
+        const scenarioPool = getScenarioPool();
+        // Filter eligible scenarios based on day, cooldown, repeatable
+        const eligible = scenarioPool.filter((s) => {
+          if (s.minDay > newDay) return false;
+          if (s.maxDay > 0 && newDay > s.maxDay) return false;
+          if (!s.repeatable && scenarioHistory[s.id]) return false;
+          if (s.cooldownDays > 0 && scenarioHistory[s.id] && (newDay - scenarioHistory[s.id]) < s.cooldownDays) return false;
+          return true;
         });
 
-        // Apply effects
-        fighters = fighters.map((f) => {
-          if (f.id !== targetFighter.id) return f;
-          return {
-            ...f,
-            morale: Math.max(0, Math.min(100, f.morale + template.morale)),
-            health: Math.max(0, f.health - template.healthCost),
-            injuryDaysLeft: template.injuryDays > 0 ? template.injuryDays : f.injuryDaysLeft,
-            injury: template.injuryDays > 0 ? 'minor' as const : f.injury,
-            fame: Math.min(100, f.fame + (template.fameGain ?? 0)),
-          };
-        });
+        if (eligible.length > 0) {
+          const scenario = pick(eligible);
+          scenarioHistory[scenario.id] = newDay;
+          const targetFighter = pick(fighters);
+          const scenarioText = scenario.text
+            .replace(/\{fighterName\}/g, targetFighter.name)
+            .replace(/\{playerName\}/g, 'Boss');
 
-        if (template.moneyCost) money -= template.moneyCost;
-        if (template.sponsorOffer && sponsors.length < 3) {
-          const newSponsor = generateSponsor(gs.gym.level);
-          sponsors.push(newSponsor);
           dialogs.push({
-            speaker: 'SPONSOR',
-            text: `${newSponsor.name} offered a deal: $${newSponsor.weeklyPayment}/week + $${newSponsor.fightBonus}/fight for ${newSponsor.weeksLeft} weeks!`,
+            speaker: scenario.speaker || scenario.name,
+            text: scenarioText,
+            choices: scenario.choices.map((c) => ({
+              label: c.label,
+              action: 'dismiss', // For now, effects applied immediately
+            })),
           });
+
+          // Apply effects from the first choice automatically (simplified)
+          const effects = scenario.choices[0]?.effects ?? [];
+          for (const eff of effects) {
+            if (eff.type === 'money') money += Number(eff.value);
+            if (eff.type === 'reputation') {
+              gym = { ...gym, reputation: Math.max(0, Math.min(100, gym.reputation + Number(eff.value))) };
+            }
+            if (eff.type === 'add_sponsor' && sponsors.length < 3) {
+              const newSponsor = generateSponsor(gs.gym.level);
+              sponsors.push(newSponsor);
+              dialogs.push({
+                speaker: 'SPONSOR',
+                text: `${newSponsor.name} offered a deal: $${newSponsor.weeklyPayment}/week + $${newSponsor.fightBonus}/fight for ${newSponsor.weeksLeft} weeks!`,
+              });
+            }
+            if ((eff.target === 'random_fighter' || eff.target === 'all_fighters') && fighters.length > 0) {
+              const targetIds = eff.target === 'all_fighters'
+                ? fighters.map((f) => f.id)
+                : [targetFighter.id];
+              fighters = fighters.map((f) => {
+                if (!targetIds.includes(f.id)) return f;
+                let updated = { ...f };
+                if (eff.type === 'morale') updated.morale = Math.max(0, Math.min(100, f.morale + Number(eff.value)));
+                if (eff.type === 'health') updated.health = Math.max(0, Math.min(100, f.health + Number(eff.value)));
+                if (eff.type === 'fame') updated.fame = Math.min(100, f.fame + Number(eff.value));
+                if (eff.type === 'injury_days' && Number(eff.value) > 0) {
+                  updated.injuryDaysLeft = Number(eff.value);
+                  updated.injury = 'minor';
+                }
+                return updated;
+              });
+            }
+          }
+
         }
       }
 
@@ -448,6 +474,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           money,
           fighters,
           sponsors,
+          gym,
+          scenarioHistory,
           finances: [...gs.finances, financeRecord],
           dialogQueue: [...gs.dialogQueue, ...dialogs],
         },
@@ -455,25 +483,54 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return;
     }
 
-    // ── Non-weekly day: random event (10% chance) ──
-    if (Math.random() < 0.1 && fighters.length > 0) {
-      const template = pick(EVENT_TEMPLATES.filter((e) => e.type !== 'news'));
-      const targetFighter = pick(fighters);
-
-      dialogs.push({
-        speaker: template.title,
-        text: template.desc(targetFighter.name),
+    // ── Non-weekly day: random event (uses admin scenario pool) ──
+    const dailyChance = getGameSettings().eventChanceDaily / 100;
+    if (Math.random() < dailyChance && fighters.length > 0) {
+      const scenarioPool = getScenarioPool();
+      const eligible = scenarioPool.filter((s) => {
+        if (s.minDay > newDay) return false;
+        if (s.maxDay > 0 && newDay > s.maxDay) return false;
+        if (!s.repeatable && scenarioHistory[s.id]) return false;
+        if (s.cooldownDays > 0 && scenarioHistory[s.id] && (newDay - scenarioHistory[s.id]) < s.cooldownDays) return false;
+        return true;
       });
 
-      fighters = fighters.map((f) => {
-        if (f.id !== targetFighter.id) return f;
-        return {
-          ...f,
-          morale: Math.max(0, Math.min(100, f.morale + template.morale)),
-          health: Math.max(0, f.health - template.healthCost),
-          fame: Math.min(100, f.fame + (template.fameGain ?? 0)),
-        };
-      });
+      if (eligible.length > 0) {
+        const scenario = pick(eligible);
+        scenarioHistory[scenario.id] = newDay;
+        const targetFighter = pick(fighters);
+        const scenarioText = scenario.text
+          .replace(/\{fighterName\}/g, targetFighter.name)
+          .replace(/\{playerName\}/g, 'Boss');
+
+        dialogs.push({
+          speaker: scenario.speaker || scenario.name,
+          text: scenarioText,
+        });
+
+        // Apply first choice effects
+        const effects = scenario.choices[0]?.effects ?? [];
+        for (const eff of effects) {
+          if (eff.type === 'money') money += Number(eff.value);
+          if ((eff.target === 'random_fighter' || eff.target === 'all_fighters') && fighters.length > 0) {
+            const targetIds = eff.target === 'all_fighters'
+              ? fighters.map((f) => f.id)
+              : [targetFighter.id];
+            fighters = fighters.map((f) => {
+              if (!targetIds.includes(f.id)) return f;
+              let updated = { ...f };
+              if (eff.type === 'morale') updated.morale = Math.max(0, Math.min(100, f.morale + Number(eff.value)));
+              if (eff.type === 'health') updated.health = Math.max(0, Math.min(100, f.health + Number(eff.value)));
+              if (eff.type === 'fame') updated.fame = Math.min(100, f.fame + Number(eff.value));
+              if (eff.type === 'injury_days' && Number(eff.value) > 0) {
+                updated.injuryDaysLeft = Number(eff.value);
+                updated.injury = 'minor';
+              }
+              return updated;
+            });
+          }
+        }
+      }
     }
 
     // ── Fight day check ──
@@ -498,6 +555,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         money,
         fighters,
         sponsors,
+        scenarioHistory,
         dialogQueue: [...gs.dialogQueue, ...dialogs],
       },
     });

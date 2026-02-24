@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { generateOpponent } from '../../services/fighterGen';
-import { VENUE_NAMES } from '../../data/fighterNames';
+import { getVenuePool } from '../../services/contentResolver';
 import type { ScheduledFight } from '../../types/gameplay';
+import type { VenueTemplate } from '../../types/admin';
 
 function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
 function rng(min: number, max: number) { return Math.floor(Math.random() * (max - min + 1)) + min; }
@@ -15,20 +16,27 @@ export default function ContractPanel() {
     (f) => f.injury === 'none' && !gameState.schedule.some((s) => s.fighterId === f.id)
   );
 
-  // Generate available fight offers
+  // Generate available fight offers using admin venue pool
   const [offers] = useState(() => {
+    const venuePool = getVenuePool();
+    // Filter venues the gym's reputation qualifies for
+    const eligible = venuePool.filter((v) => (v.minReputation ?? 0) <= (gameState?.gym.reputation ?? 0));
+    const vPool = eligible.length > 0 ? eligible : venuePool;
+
     const count = 2 + Math.floor(manager.connections / 3);
     return Array.from({ length: count }, (_, i) => {
-      const prestige = rng(1, Math.min(10, 3 + Math.floor(manager.connections / 2)));
-      const isMain = prestige >= 7 && Math.random() < 0.3;
+      const venueTemplate = pick(vPool);
+      const prestige = Math.min(10, Math.max(1, venueTemplate.prestige ?? rng(1, 3 + Math.floor(manager.connections / 2))));
+      const isMain = (venueTemplate.ppvAvailable && prestige >= 7 && Math.random() < 0.3) || (prestige >= 7 && Math.random() < 0.3);
       return {
         id: `offer-${i}-${Date.now()}`,
-        venue: pick(VENUE_NAMES),
+        venue: venueTemplate.name,
+        venueCity: venueTemplate.city ?? '',
         prestige,
         isMainEvent: isMain,
-        basePurse: prestige * 500 + rng(500, 2000),
+        basePurse: venueTemplate.basePurse ?? (prestige * 500 + rng(500, 2000)),
         ppvPoints: isMain ? rng(2, 8) : 0,
-        ticketRevenueSplit: rng(5, 15 + manager.negotiation * 2),
+        ticketRevenueSplit: venueTemplate.ticketRevenueSplit ?? rng(5, 15 + manager.negotiation * 2),
         daysOut: rng(3, 14),
         difficulty: rng(-1, 2),
       };
@@ -124,7 +132,7 @@ export default function ContractPanel() {
           >
             <div>
               <div style={{ fontSize: 9, color: '#d4a017', marginBottom: 2 }}>
-                {offer.venue} {offer.isMainEvent ? '★ MAIN EVENT' : ''}
+                {offer.venue}{offer.venueCity ? `, ${offer.venueCity}` : ''} {offer.isMainEvent ? '★ MAIN EVENT' : ''}
               </div>
               <div style={{ fontSize: 7, color: '#888' }}>
                 Prestige: {'⭐'.repeat(Math.min(5, Math.ceil(offer.prestige / 2)))} •
