@@ -157,7 +157,7 @@ interface AdminStore {
 }
 
 // Helper to commit a bundle change (saves + updates state + records timestamp)
-function commit(set: Function, _get: Function, updated: AdminContentBundle) {
+function commit(set: Function, updated: AdminContentBundle) {
   saveToStorage(updated);
   set({ bundle: updated, lastSaved: Date.now() });
 }
@@ -196,7 +196,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, scenarios: [...b.scenarios, s] };
-    commit(set, get, updated);
+    commit(set, updated);
     set({ editingId: s.id });
   },
 
@@ -209,14 +209,14 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
         s.id === id ? { ...s, ...updates, updatedAt: Date.now() } : s
       ),
     };
-    commit(set, get, updated);
+    commit(set, updated);
   },
 
   removeScenario: (id) => {
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, scenarios: b.scenarios.filter((s) => s.id !== id) };
-    commit(set, get, updated);
+    commit(set, updated);
     set({ editingId: null });
   },
 
@@ -226,7 +226,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, venues: [...b.venues, v] };
-    commit(set, get, updated);
+    commit(set, updated);
     set({ editingId: v.id });
   },
 
@@ -239,14 +239,14 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
         v.id === id ? { ...v, ...updates, updatedAt: Date.now() } : v
       ),
     };
-    commit(set, get, updated);
+    commit(set, updated);
   },
 
   removeVenue: (id) => {
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, venues: b.venues.filter((v) => v.id !== id) };
-    commit(set, get, updated);
+    commit(set, updated);
     set({ editingId: null });
   },
 
@@ -256,7 +256,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, sponsors: [...b.sponsors, s] };
-    commit(set, get, updated);
+    commit(set, updated);
     set({ editingId: s.id });
   },
 
@@ -269,14 +269,14 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
         s.id === id ? { ...s, ...updates, updatedAt: Date.now() } : s
       ),
     };
-    commit(set, get, updated);
+    commit(set, updated);
   },
 
   removeSponsor: (id) => {
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, sponsors: b.sponsors.filter((s) => s.id !== id) };
-    commit(set, get, updated);
+    commit(set, updated);
     set({ editingId: null });
   },
 
@@ -286,7 +286,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, dialogs: [...b.dialogs, d] };
-    commit(set, get, updated);
+    commit(set, updated);
     set({ editingId: d.id });
   },
 
@@ -299,14 +299,14 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
         d.id === id ? { ...d, ...updates, updatedAt: Date.now() } : d
       ),
     };
-    commit(set, get, updated);
+    commit(set, updated);
   },
 
   removeDialog: (id) => {
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, dialogs: b.dialogs.filter((d) => d.id !== id) };
-    commit(set, get, updated);
+    commit(set, updated);
     set({ editingId: null });
   },
 
@@ -316,7 +316,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, commentary: [...b.commentary, c] };
-    commit(set, get, updated);
+    commit(set, updated);
     set({ editingId: c.id });
   },
 
@@ -329,14 +329,14 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
         c.id === id ? { ...c, ...updates, updatedAt: Date.now() } : c
       ),
     };
-    commit(set, get, updated);
+    commit(set, updated);
   },
 
   removeCommentary: (id) => {
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, commentary: b.commentary.filter((c) => c.id !== id) };
-    commit(set, get, updated);
+    commit(set, updated);
     set({ editingId: null });
   },
 
@@ -346,14 +346,14 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, gameSettings: { ...b.gameSettings, ...updates } };
-    commit(set, get, updated);
+    commit(set, updated);
   },
 
   resetGameSettings: () => {
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, gameSettings: createDefaultGameSettings() };
-    commit(set, get, updated);
+    commit(set, updated);
   },
 
   // ── Fighter Tiers ──
@@ -362,7 +362,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, fighterTiers: [...b.fighterTiers, t] };
-    commit(set, get, updated);
+    commit(set, updated);
     set({ editingId: t.id });
   },
 
@@ -375,14 +375,14 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
         t.id === id ? { ...t, ...updates } : t
       ),
     };
-    commit(set, get, updated);
+    commit(set, updated);
   },
 
   removeFighterTier: (id) => {
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, fighterTiers: b.fighterTiers.filter((t) => t.id !== id) };
-    commit(set, get, updated);
+    commit(set, updated);
     set({ editingId: null });
   },
 
@@ -390,7 +390,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, fighterTiers: tiers };
-    commit(set, get, updated);
+    commit(set, updated);
   },
 
   // ── Gym Levels ──
@@ -399,7 +399,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, gymLevels: [...b.gymLevels, g] };
-    commit(set, get, updated);
+    commit(set, updated);
     set({ editingId: g.id });
   },
 
@@ -412,14 +412,14 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
         g.id === id ? { ...g, ...updates } : g
       ),
     };
-    commit(set, get, updated);
+    commit(set, updated);
   },
 
   removeGymLevel: (id) => {
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, gymLevels: b.gymLevels.filter((g) => g.id !== id) };
-    commit(set, get, updated);
+    commit(set, updated);
     set({ editingId: null });
   },
 
@@ -427,7 +427,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, gymLevels: levels };
-    commit(set, get, updated);
+    commit(set, updated);
   },
 
   // ── Names ──
@@ -440,7 +440,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     for (const n of names) existing.add(n.trim());
     pool[type] = Array.from(existing).filter(Boolean);
     const updated = { ...b, namePool: pool };
-    commit(set, get, updated);
+    commit(set, updated);
   },
 
   removeName: (type, name) => {
@@ -449,7 +449,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     const pool = { ...b.namePool };
     pool[type] = pool[type].filter((n) => n !== name);
     const updated = { ...b, namePool: pool };
-    commit(set, get, updated);
+    commit(set, updated);
   },
 
   // ── Assets ──
@@ -458,14 +458,14 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, assets: [...b.assets, a] };
-    commit(set, get, updated);
+    commit(set, updated);
   },
 
   removeAsset: (id) => {
     get().pushUndo();
     const b = get().bundle;
     const updated = { ...b, assets: b.assets.filter((a) => a.id !== id) };
-    commit(set, get, updated);
+    commit(set, updated);
   },
 
   updateAssetCategory: (id, category) => {
@@ -475,7 +475,7 @@ export const useAdminStore = create<AdminStore>((set, get) => ({
       ...b,
       assets: b.assets.map((a) => a.id === id ? { ...a, category } : a),
     };
-    commit(set, get, updated);
+    commit(set, updated);
   },
 
   // ── Import/Export ──

@@ -97,8 +97,6 @@ function generateSponsor(gymLevel: number): SponsorDeal {
   const pool = getSponsorPool();
   const template = pick(pool);
 
-  // Use admin-defined ranges if available, else scale by gym level
-  const _tier = template.tier ?? Math.min(gymLevel, 3);
   const weekly = rng(template.weeklyPaymentRange[0], template.weeklyPaymentRange[1]);
   const fightB = rng(template.fightBonusRange[0], template.fightBonusRange[1]);
   const weeks = rng(template.durationWeeksRange[0], template.durationWeeksRange[1]);
