@@ -1,5 +1,5 @@
 import type { Fighter, WeightClass, Personality, FighterStats } from '../types/gameplay';
-import { FIRST_NAMES, LAST_NAMES, NICKNAMES } from '../data/fighterNames';
+import { getNamePool, getFighterTiers } from './contentResolver';
 
 type Tier = 'scrub' | 'local' | 'regional' | 'national' | 'elite';
 
@@ -15,14 +15,6 @@ const WEIGHT_CLASSES: WeightClass[] = [
 
 const PERSONALITIES: Personality[] = ['cocky', 'humble', 'shy', 'joker'];
 
-const TIER_RANGES: Record<Tier, { min: number; max: number; potential: number }> = {
-  scrub:    { min: 2, max: 4, potential: 6 },
-  local:    { min: 3, max: 5, potential: 7 },
-  regional: { min: 4, max: 7, potential: 8 },
-  national: { min: 6, max: 8, potential: 9 },
-  elite:    { min: 7, max: 10, potential: 10 },
-};
-
 let _idCounter = 0;
 
 function rng(min: number, max: number): number {
@@ -33,8 +25,32 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+/** Resolve tier data from admin-defined tiers, falling back to hardcoded ranges */
+function getTierData(tier: Tier): { min: number; max: number; potential: number; salaryMin: number; salaryMax: number } {
+  const tiers = getFighterTiers();
+  const match = tiers.find((t) => t.name === tier);
+  if (match) {
+    return {
+      min: match.minOverall,
+      max: match.maxOverall,
+      potential: match.potentialCap,
+      salaryMin: match.salaryRange[0],
+      salaryMax: match.salaryRange[1],
+    };
+  }
+  // Hardcoded fallback (should never happen if defaults are loaded)
+  const FALLBACK: Record<Tier, { min: number; max: number; potential: number; salaryMin: number; salaryMax: number }> = {
+    scrub:    { min: 2, max: 4, potential: 6, salaryMin: 200, salaryMax: 400 },
+    local:    { min: 3, max: 5, potential: 7, salaryMin: 300, salaryMax: 600 },
+    regional: { min: 4, max: 7, potential: 8, salaryMin: 500, salaryMax: 1000 },
+    national: { min: 6, max: 8, potential: 9, salaryMin: 800, salaryMax: 2000 },
+    elite:    { min: 7, max: 10, potential: 10, salaryMin: 1500, salaryMax: 4000 },
+  };
+  return FALLBACK[tier];
+}
+
 function genStats(tier: Tier): FighterStats {
-  const { min, max } = TIER_RANGES[tier];
+  const { min, max } = getTierData(tier);
   return {
     striking: rng(min, max),
     grappling: rng(min, max),
@@ -44,7 +60,7 @@ function genStats(tier: Tier): FighterStats {
 }
 
 function genPotential(stats: FighterStats, tier: Tier): FighterStats {
-  const cap = TIER_RANGES[tier].potential;
+  const cap = getTierData(tier).potential;
   return {
     striking: Math.min(10, rng(stats.striking, cap)),
     grappling: Math.min(10, rng(stats.grappling, cap)),
@@ -59,20 +75,15 @@ export function generateFighter(opts: GenOptions = {}): Fighter {
   const potential = genPotential(stats, tier);
   const wc = opts.forceWeightClass || pick(WEIGHT_CLASSES);
 
-  const firstName = pick(FIRST_NAMES);
-  const lastName = pick(LAST_NAMES);
-  const nickname = pick(NICKNAMES);
+  // Use admin + fallback name pools via contentResolver
+  const namePool = getNamePool();
+  const firstName = pick(namePool.firstNames);
+  const lastName = pick(namePool.lastNames);
+  const nickname = pick(namePool.nicknames);
 
   _idCounter++;
 
-  const tierSalary: Record<Tier, [number, number]> = {
-    scrub: [200, 400],
-    local: [300, 600],
-    regional: [500, 1000],
-    national: [800, 2000],
-    elite: [1500, 4000],
-  };
-  const [sMin, sMax] = tierSalary[tier];
+  const { salaryMin, salaryMax } = getTierData(tier);
 
   return {
     id: `fighter-${_idCounter}-${Date.now()}`,
@@ -93,7 +104,7 @@ export function generateFighter(opts: GenOptions = {}): Fighter {
     knockouts: rng(0, 4),
     ranking: null,
     titleHolder: false,
-    salary: rng(sMin, sMax),
+    salary: rng(salaryMin, salaryMax),
     contractWeeksLeft: 0,
     fightBonus: rng(5, 20),
     signedDay: 0,

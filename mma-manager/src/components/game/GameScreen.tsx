@@ -15,7 +15,7 @@ export default function GameScreen() {
   const screen = gameState.activeScreen;
 
   return (
-    <div style={{ width: '100vw', height: '100dvh', position: 'relative' }}>
+    <div style={{ width: '100vw', height: '100dvh', position: 'relative', overflow: 'hidden' }}>
       {/* Hub always renders underneath */}
       <HubScreen />
 

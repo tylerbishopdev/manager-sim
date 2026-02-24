@@ -1,55 +1,6 @@
 import type { Fighter, FightRound, FightRoundEvent, FightOutcome, FightResult, FightEarnings, ScheduledFight, InjuryStatus } from '../types/gameplay';
-
-// ── Commentary templates ─────────────────────────────────
-
-const STRIKE_HIT = [
-  '{attacker} lands a CRISP jab!',
-  '{attacker} connects with a heavy right hand!',
-  '{attacker} throws a spinning back fist — IT LANDS!',
-  '{attacker} lights up {defender} with a combo!',
-  '{attacker} snaps {defender}\'s head back with an uppercut!',
-  '{attacker} lands a body shot that echoes through the arena!',
-];
-
-const STRIKE_MISS = [
-  '{attacker} swings wild and misses!',
-  '{defender} slips the punch beautifully!',
-  '{attacker} throws leather but hits nothing but air!',
-  '{defender} makes {attacker} look silly with the head movement!',
-];
-
-const GRAPPLE_SUCCESS = [
-  '{attacker} scores a HUGE takedown!',
-  '{attacker} drags {defender} to the mat!',
-  '{attacker} gets the clinch and trips {defender}!',
-  '{attacker} shoots in — double leg! They\'re on the ground!',
-];
-
-const GRAPPLE_FAIL = [
-  '{attacker} shoots for a takedown — STUFFED!',
-  '{defender} sprawls and stays on their feet!',
-  '{attacker} can\'t get the clinch, {defender} shrugs it off!',
-];
-
-const KO_LINES = [
-  '{attacker} DROPS {defender}! IT\'S ALL OVER!',
-  'TIMBER! {defender} goes down like a sack of potatoes!',
-  '{attacker} puts {defender}\'s lights OUT! What a shot!',
-  'OH! {defender} is STIFF! The ref waves it off!',
-];
-
-const SUB_LINES = [
-  '{attacker} sinks in the choke! {defender} taps!',
-  '{attacker} locks up the armbar — {defender} has no choice but to tap!',
-  'Triangle choke by {attacker}! {defender} is going to sleep!',
-];
-
-const TAUNT_LINES = [
-  '{attacker} does a little dance. The crowd loves it.',
-  '{attacker} points at the camera and winks.',
-  '{attacker} flexes after landing that combo.',
-  '{attacker} trash-talks {defender}. Bold strategy.',
-];
+import { getCommentaryPool } from './contentResolver';
+import type { CommentaryCategory } from '../types/admin';
 
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -57,6 +8,12 @@ function pick<T>(arr: T[]): T {
 
 function fillTemplate(template: string, attacker: string, defender: string): string {
   return template.replace(/\{attacker\}/g, attacker).replace(/\{defender\}/g, defender);
+}
+
+// ── Commentary helpers (resolved per fight) ──────────────
+
+function getLines(cat: CommentaryCategory): string[] {
+  return getCommentaryPool()[cat];
 }
 
 // ── Round Simulation ─────────────────────────────────────
@@ -102,9 +59,9 @@ function simulateRound(
         const mitigated = dmg * (1 - defender.stats.durability * 0.06);
         if (attackerIsF1) { f2Hp -= mitigated; f1Score += 2; }
         else { f1Hp -= mitigated; f2Score += 2; }
-        events.push({ text: fillTemplate(pick(GRAPPLE_SUCCESS), attacker.name, defender.name), type: 'grapple', fighter: side });
+        events.push({ text: fillTemplate(pick(getLines('grapple_success')), attacker.name, defender.name), type: 'grapple', fighter: side });
       } else {
-        events.push({ text: fillTemplate(pick(GRAPPLE_FAIL), attacker.name, defender.name), type: 'grapple', fighter: side });
+        events.push({ text: fillTemplate(pick(getLines('grapple_fail')), attacker.name, defender.name), type: 'grapple', fighter: side });
         // Defender scores for stuffing
         if (attackerIsF1) f2Score += 1;
         else f1Score += 1;
@@ -117,17 +74,17 @@ function simulateRound(
         const mitigated = dmg * (1 - defender.stats.durability * 0.05);
         if (attackerIsF1) { f2Hp -= mitigated; f1Score += 2; }
         else { f1Hp -= mitigated; f2Score += 2; }
-        events.push({ text: fillTemplate(pick(STRIKE_HIT), attacker.name, defender.name), type: 'strike', fighter: side });
+        events.push({ text: fillTemplate(pick(getLines('strike_hit')), attacker.name, defender.name), type: 'strike', fighter: side });
 
         // Critical hit chance (KO)
         if (mitigated > 12 && Math.random() < 0.08) {
           if (attackerIsF1) f2Hp = 0;
           else f1Hp = 0;
-          events.push({ text: fillTemplate(pick(KO_LINES), attacker.name, defender.name), type: 'knockout', fighter: side });
+          events.push({ text: fillTemplate(pick(getLines('ko')), attacker.name, defender.name), type: 'knockout', fighter: side });
           break;
         }
       } else {
-        events.push({ text: fillTemplate(pick(STRIKE_MISS), attacker.name, defender.name), type: 'strike', fighter: side });
+        events.push({ text: fillTemplate(pick(getLines('strike_miss')), attacker.name, defender.name), type: 'strike', fighter: side });
       }
     }
 
@@ -137,14 +94,14 @@ function simulateRound(
       if (Math.random() < subChance) {
         if (attackerIsF1) f2Hp = 0;
         else f1Hp = 0;
-        events.push({ text: fillTemplate(pick(SUB_LINES), attacker.name, defender.name), type: 'submission', fighter: side });
+        events.push({ text: fillTemplate(pick(getLines('submission')), attacker.name, defender.name), type: 'submission', fighter: side });
         break;
       }
     }
 
     // Random taunt (5% chance)
     if (Math.random() < 0.05) {
-      events.push({ text: fillTemplate(pick(TAUNT_LINES), attacker.name, defender.name), type: 'taunt', fighter: side });
+      events.push({ text: fillTemplate(pick(getLines('taunt')), attacker.name, defender.name), type: 'taunt', fighter: side });
     }
 
     // Early stoppage if HP critically low

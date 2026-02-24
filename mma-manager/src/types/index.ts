@@ -1,4 +1,4 @@
-export type Screen = 'title' | 'select' | 'create' | 'confirm';
+export type Screen = 'title' | 'select' | 'create' | 'confirm' | 'admin';
 
 export interface CustomOptions {
   skinTone: number;
