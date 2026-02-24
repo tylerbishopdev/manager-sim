@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getDb } from '../lib/db';
+import { getDb } from '../lib/db.js';
 
 const BUNDLE_ID = 'default';
 
