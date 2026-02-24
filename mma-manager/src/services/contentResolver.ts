@@ -12,7 +12,6 @@ import type {
   VenueTemplate,
   SponsorTemplate,
   DialogTemplate,
-  CommentaryTemplate,
   CommentaryCategory,
   GameSettings,
   FighterTierDefinition,

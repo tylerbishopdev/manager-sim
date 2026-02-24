@@ -157,7 +157,7 @@ interface AdminStore {
 }
 
 // Helper to commit a bundle change (saves + updates state + records timestamp)
-function commit(set: Function, get: Function, updated: AdminContentBundle) {
+function commit(set: Function, _get: Function, updated: AdminContentBundle) {
   saveToStorage(updated);
   set({ bundle: updated, lastSaved: Date.now() });
 }
