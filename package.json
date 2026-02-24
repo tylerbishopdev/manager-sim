@@ -1,0 +1,11 @@
+{
+  "name": "manager-sim",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4"
+  },
+  "devDependencies": {
+    "@vercel/node": "^5.1.8"
+  }
+}

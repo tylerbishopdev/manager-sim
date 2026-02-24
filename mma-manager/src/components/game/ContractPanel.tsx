@@ -3,7 +3,7 @@ import { useGameStore } from '../../store/gameStore';
 import { generateOpponent } from '../../services/fighterGen';
 import { getVenuePool } from '../../services/contentResolver';
 import type { ScheduledFight } from '../../types/gameplay';
-import type { VenueTemplate } from '../../types/admin';
+
 
 function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
 function rng(min: number, max: number) { return Math.floor(Math.random() * (max - min + 1)) + min; }

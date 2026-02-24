@@ -1,34 +1,52 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { useAdminStore } from '../../store/adminStore';
 import type { AdminSection } from '../../store/adminStore';
 import { validateBundle } from './validation';
 import { isAdminContentActive } from '../../services/contentResolver';
+import { fetchActivity, setupSchema } from '../../services/adminApi';
+import type { ActivityEntry } from '../../services/adminApi';
 
 export default function AdminDashboard() {
-  const { bundle, exportBundle, importBundle, resetBundle, undo, canUndo, setSection, lastSaved, getStorageUsage } = useAdminStore();
+  const {
+    bundle, exportBundle, importBundle, resetBundle, undo, canUndo,
+    setSection, lastSaved, getStorageUsage,
+    syncStatus, dbConnected, lastSyncedAt, syncError, initFromApi,
+  } = useAdminStore();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [activity, setActivity] = useState<ActivityEntry[]>([]);
+  const [settingUp, setSettingUp] = useState(false);
 
   const nameCount = bundle.namePool.firstNames.length + bundle.namePool.lastNames.length + bundle.namePool.nicknames.length;
 
   const stats: { label: string; count: number; section: AdminSection; icon: string }[] = [
-    { label: 'Scenarios', count: bundle.scenarios.length, section: 'scenarios', icon: '🎬' },
-    { label: 'Venues', count: bundle.venues.length, section: 'venues', icon: '🏟' },
-    { label: 'Sponsors', count: bundle.sponsors.length, section: 'sponsors', icon: '💰' },
-    { label: 'Dialogs', count: bundle.dialogs.length, section: 'dialogs', icon: '💬' },
-    { label: 'Commentary', count: bundle.commentary.length, section: 'commentary', icon: '🎙' },
-    { label: 'Names', count: nameCount, section: 'names', icon: '📋' },
-    { label: 'Assets', count: bundle.assets.length, section: 'assets', icon: '🖼' },
-    { label: 'Fighter Tiers', count: bundle.fighterTiers.length, section: 'fighter_tiers', icon: '⚔' },
-    { label: 'Gym Levels', count: bundle.gymLevels.length, section: 'gym_levels', icon: '🏋' },
+    { label: 'Scenarios', count: bundle.scenarios.length, section: 'scenarios', icon: '\uD83C\uDFAC' },
+    { label: 'Venues', count: bundle.venues.length, section: 'venues', icon: '\uD83C\uDFDF' },
+    { label: 'Sponsors', count: bundle.sponsors.length, section: 'sponsors', icon: '\uD83D\uDCB0' },
+    { label: 'Dialogs', count: bundle.dialogs.length, section: 'dialogs', icon: '\uD83D\uDCAC' },
+    { label: 'Commentary', count: bundle.commentary.length, section: 'commentary', icon: '\uD83C\uDF99' },
+    { label: 'Names', count: nameCount, section: 'names', icon: '\uD83D\uDCCB' },
+    { label: 'Assets', count: bundle.assets.length, section: 'assets', icon: '\uD83D\uDDBC' },
+    { label: 'Fighter Tiers', count: bundle.fighterTiers.length, section: 'fighter_tiers', icon: '\u2694' },
+    { label: 'Gym Levels', count: bundle.gymLevels.length, section: 'gym_levels', icon: '\uD83C\uDFCB' },
   ];
 
-  // Validation health (memoize to avoid recalculating on every render)
   const validation = useMemo(() => validateBundle(bundle), [bundle]);
   const contentActive = useMemo(() => isAdminContentActive(), [bundle]);
   const storage = useMemo(() => getStorageUsage(), [bundle]);
 
   const totalItems = bundle.scenarios.length + bundle.venues.length + bundle.sponsors.length
     + bundle.dialogs.length + bundle.commentary.length + bundle.fighterTiers.length + bundle.gymLevels.length;
+
+  // Load recent activity when DB is connected
+  const loadActivity = useCallback(async () => {
+    if (!dbConnected) return;
+    const entries = await fetchActivity(10);
+    setActivity(entries);
+  }, [dbConnected]);
+
+  useEffect(() => {
+    loadActivity();
+  }, [loadActivity, lastSyncedAt]);
 
   // Timestamped export
   const handleExport = () => {
@@ -68,6 +86,15 @@ export default function AdminDashboard() {
     if (canUndo()) undo();
   };
 
+  const handleSetupDb = async () => {
+    setSettingUp(true);
+    const ok = await setupSchema();
+    if (ok) {
+      await initFromApi();
+    }
+    setSettingUp(false);
+  };
+
   const formatBytes = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -77,6 +104,29 @@ export default function AdminDashboard() {
   const lastSavedStr = lastSaved
     ? new Date(lastSaved).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : 'Never';
+
+  const lastSyncedStr = lastSyncedAt
+    ? new Date(lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : 'Never';
+
+  // DB status display
+  const dbStatusLabel = (() => {
+    switch (syncStatus) {
+      case 'loading': return 'Connecting...';
+      case 'saving': return 'Saving...';
+      case 'error': return syncError ?? 'Error';
+      case 'offline': return 'Offline';
+      case 'idle': return dbConnected ? 'Connected' : 'Offline';
+      default: return 'Unknown';
+    }
+  })();
+
+  const dbStatusClass = (() => {
+    if (syncStatus === 'error') return 'error';
+    if (syncStatus === 'loading' || syncStatus === 'saving') return '';
+    if (dbConnected) return 'success';
+    return '';
+  })();
 
   return (
     <div className="admin-dashboard">
@@ -88,22 +138,39 @@ export default function AdminDashboard() {
         <div className="admin-health-card">
           <div className="admin-health-card-title">Content Status</div>
           <div className={`admin-health-card-value ${contentActive ? 'success' : ''}`}>
-            {contentActive ? '✓ Active' : '○ No custom content'}
+            {contentActive ? '\u2713 Active' : '\u25CB No custom content'}
           </div>
         </div>
         <div className="admin-health-card">
           <div className="admin-health-card-title">Validation</div>
           <div className={`admin-health-card-value ${validation.totalErrors > 0 ? 'error' : 'success'}`}>
-            {validation.totalErrors === 0 ? '✓ All clear' : `⚠ ${validation.totalErrors} error${validation.totalErrors !== 1 ? 's' : ''}`}
+            {validation.totalErrors === 0 ? '\u2713 All clear' : `\u26A0 ${validation.totalErrors} error${validation.totalErrors !== 1 ? 's' : ''}`}
           </div>
         </div>
         <div className="admin-health-card">
-          <div className="admin-health-card-title">Total Items</div>
-          <div className="admin-health-card-value">{totalItems}</div>
+          <div className="admin-health-card-title">Database</div>
+          <div className={`admin-health-card-value ${dbStatusClass}`}>
+            {dbStatusLabel}
+          </div>
+          {!dbConnected && syncStatus === 'offline' && (
+            <button
+              className="admin-btn admin-btn-xs"
+              onClick={handleSetupDb}
+              disabled={settingUp}
+              style={{ marginTop: 4, fontSize: 10 }}
+            >
+              {settingUp ? 'Setting up...' : 'Setup Database'}
+            </button>
+          )}
         </div>
         <div className="admin-health-card">
           <div className="admin-health-card-title">Last Saved</div>
           <div className="admin-health-card-value">{lastSavedStr}</div>
+          {dbConnected && (
+            <div style={{ fontSize: 10, color: '#8b949e', marginTop: 2 }}>
+              DB sync: {lastSyncedStr}
+            </div>
+          )}
         </div>
       </div>
 
@@ -164,7 +231,7 @@ export default function AdminDashboard() {
       {/* Storage usage */}
       <div style={{ marginTop: 16, marginBottom: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#8b949e', marginBottom: 4 }}>
-          <span>Storage Usage</span>
+          <span>Local Storage</span>
           <span>{formatBytes(storage.used)} / {formatBytes(storage.limit)} ({storage.percentage}%)</span>
         </div>
         <div className="admin-storage-bar">
@@ -185,6 +252,29 @@ export default function AdminDashboard() {
         <button className="admin-btn admin-btn-danger" onClick={handleReset}>Reset All</button>
         <input ref={fileRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleFileChange} />
       </div>
+
+      {/* Recent Activity (only when DB connected) */}
+      {dbConnected && activity.length > 0 && (
+        <div className="admin-activity-section">
+          <h3 className="admin-section-subtitle">Recent Activity</h3>
+          <div className="admin-activity-list">
+            {activity.map((entry) => (
+              <div key={entry.id} className="admin-activity-row">
+                <span className="admin-activity-action">{entry.action}</span>
+                {entry.entity_type && (
+                  <span className="admin-activity-entity">{entry.entity_type}</span>
+                )}
+                {entry.entity_name && (
+                  <span className="admin-activity-name">{entry.entity_name}</span>
+                )}
+                <span className="admin-activity-time">
+                  {new Date(entry.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Bundle meta */}
       <div className="admin-meta">

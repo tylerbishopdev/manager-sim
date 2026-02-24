@@ -1,9 +1,10 @@
 {
-  "installCommand": "cd mma-manager && npm install",
+  "installCommand": "npm install && cd mma-manager && npm install",
   "buildCommand": "cd mma-manager && npm run build",
   "outputDirectory": "mma-manager/dist",
   "framework": null,
   "rewrites": [
-    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/((?!assets/|api/).*)", "destination": "/index.html" }
   ]
 }
