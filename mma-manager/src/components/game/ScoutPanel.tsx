@@ -6,10 +6,10 @@ import type { Fighter } from '../../types/gameplay';
 
 export default function ScoutPanel() {
   const { gameState, manager, setScreen, addFighter, spendMoney, pushDialog } = useGameStore();
-  if (!gameState || !manager) return null;
 
   // Generate pool of available fighters based on manager scouting skill
   const [pool] = useState<Fighter[]>(() => {
+    if (!manager) return [];
     const tiers = manager.scouting >= 7
       ? ['local', 'regional', 'national'] as const
       : manager.scouting >= 4
@@ -22,6 +22,8 @@ export default function ScoutPanel() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [scouted, setScouted] = useState<Set<string>>(new Set());
+
+  if (!gameState || !manager) return null;
 
   const selected = pool.find((f) => f.id === selectedId);
   const scoutCost = Math.max(0, 200 - manager.scouting * 20); // free at scouting 10

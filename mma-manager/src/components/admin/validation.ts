@@ -142,7 +142,7 @@ export function validateCommentary(c: CommentaryTemplate): ValidationResult {
 
   if (!c.category) {
     errors.push('Category is required');
-  } else if (!COMMENTARY_CATEGORIES.includes(c.category as any)) {
+  } else if (!(COMMENTARY_CATEGORIES as readonly string[]).includes(c.category)) {
     errors.push(`Invalid category. Must be one of: ${COMMENTARY_CATEGORIES.join(', ')}`);
   }
 

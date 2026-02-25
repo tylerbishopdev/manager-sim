@@ -31,8 +31,8 @@ export default function AdminDashboard() {
   ];
 
   const validation = useMemo(() => validateBundle(bundle), [bundle]);
-  const contentActive = useMemo(() => isAdminContentActive(), [bundle]);
-  const storage = useMemo(() => getStorageUsage(), [bundle]);
+  const contentActive = isAdminContentActive();
+  const storage = getStorageUsage();
 
   const totalItems = bundle.scenarios.length + bundle.venues.length + bundle.sponsors.length
     + bundle.dialogs.length + bundle.commentary.length + bundle.fighterTiers.length + bundle.gymLevels.length;

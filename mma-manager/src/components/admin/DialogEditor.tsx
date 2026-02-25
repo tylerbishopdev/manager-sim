@@ -42,7 +42,7 @@ export default function DialogEditor() {
     return () => {
       if (cycleRef.current) clearInterval(cycleRef.current);
     };
-  }, [showPreview, editing?.id, editing?.textVariants.length]);
+  }, [showPreview, editing]);
 
   // Reset variant index when editing changes
   useEffect(() => {

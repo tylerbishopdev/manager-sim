@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 interface Props {
   onStart: () => void;
@@ -9,11 +9,11 @@ export default function TitleScreen({ onStart, onAdmin }: Props) {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
 
-  const menuItems = [
+  const menuItems = useMemo(() => [
     { label: 'NEW GAME', action: onStart, enabled: true },
     { label: 'CONTINUE', action: undefined, enabled: false },
     { label: 'GAME BUILDER', action: onAdmin, enabled: !!onAdmin },
-  ];
+  ], [onStart, onAdmin]);
 
   useEffect(() => {
     const t = setTimeout(() => setShowMenu(true), 1200);
@@ -32,7 +32,7 @@ export default function TitleScreen({ onStart, onAdmin }: Props) {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [showMenu, selectedIdx, onStart, onAdmin]);
+  }, [showMenu, selectedIdx, menuItems]);
 
   return (
     <div className="scanlines title-screen">

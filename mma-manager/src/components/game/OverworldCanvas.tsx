@@ -105,7 +105,6 @@ export default function OverworldCanvas() {
   const lastMapRef = useRef('');
 
   const gameState = useGameStore((s) => s.gameState);
-  if (!gameState) return null;
 
   // ── Input ──
   useEffect(() => {
@@ -355,6 +354,8 @@ export default function OverworldCanvas() {
     animRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animRef.current);
   }, []); // runs once — reads store directly each frame
+
+  if (!gameState) return null;
 
   return (
     <canvas

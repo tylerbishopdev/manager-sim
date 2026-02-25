@@ -10,17 +10,13 @@ function rng(min: number, max: number) { return Math.floor(Math.random() * (max 
 
 export default function ContractPanel() {
   const { gameState, manager, setScreen, addFight, pushDialog } = useGameStore();
-  if (!gameState || !manager) return null;
-
-  const availableFighters = gameState.fighters.filter(
-    (f) => f.injury === 'none' && !gameState.schedule.some((s) => s.fighterId === f.id)
-  );
 
   // Generate available fight offers using admin venue pool
   const [offers] = useState(() => {
+    if (!gameState || !manager) return [];
     const venuePool = getVenuePool();
     // Filter venues the gym's reputation qualifies for
-    const eligible = venuePool.filter((v) => (v.minReputation ?? 0) <= (gameState?.gym.reputation ?? 0));
+    const eligible = venuePool.filter((v) => (v.minReputation ?? 0) <= (gameState.gym.reputation ?? 0));
     const vPool = eligible.length > 0 ? eligible : venuePool;
 
     const count = 2 + Math.floor(manager.connections / 3);
@@ -45,6 +41,12 @@ export default function ContractPanel() {
 
   const [selectedOffer, setSelectedOffer] = useState<number | null>(null);
   const [selectedFighter, setSelectedFighter] = useState<string | null>(null);
+
+  if (!gameState || !manager) return null;
+
+  const availableFighters = gameState.fighters.filter(
+    (f) => f.injury === 'none' && !gameState.schedule.some((s) => s.fighterId === f.id)
+  );
 
   const handleBook = () => {
     if (selectedOffer === null || !selectedFighter) return;

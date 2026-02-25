@@ -38,7 +38,7 @@ const STAFF_WEEKLY: Record<string, number> = {
 
 // ── Initial State Factory ────────────────────────────────
 
-function createInitialState(_manager: ManagerCharacter): GameState {
+function createInitialState(): GameState {
   const starterFighter = generateFighter({
     tier: 'scrub',
     forceWeightClass: 'lightweight',
@@ -188,7 +188,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   startGame: (manager) => {
     set({
       manager,
-      gameState: createInitialState(manager),
+      gameState: createInitialState(),
       gameStarted: true,
     });
   },
@@ -338,7 +338,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     let sponsors = [...gs.sponsors];
     let sponsorIncome = 0;
     let gym = { ...gs.gym };
-    let scenarioHistory = { ...(gs.scenarioHistory ?? {}) };
+    const scenarioHistory = { ...(gs.scenarioHistory ?? {}) };
 
     if (isNewWeek) {
       const salaries = fighters.reduce((sum, f) => sum + f.salary, 0);
@@ -448,7 +448,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 : [targetFighter.id];
               fighters = fighters.map((f) => {
                 if (!targetIds.includes(f.id)) return f;
-                let updated = { ...f };
+                const updated = { ...f };
                 if (eff.type === 'morale') updated.morale = Math.max(0, Math.min(100, f.morale + Number(eff.value)));
                 if (eff.type === 'health') updated.health = Math.max(0, Math.min(100, f.health + Number(eff.value)));
                 if (eff.type === 'fame') updated.fame = Math.min(100, f.fame + Number(eff.value));
@@ -516,7 +516,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               : [targetFighter.id];
             fighters = fighters.map((f) => {
               if (!targetIds.includes(f.id)) return f;
-              let updated = { ...f };
+              const updated = { ...f };
               if (eff.type === 'morale') updated.morale = Math.max(0, Math.min(100, f.morale + Number(eff.value)));
               if (eff.type === 'health') updated.health = Math.max(0, Math.min(100, f.health + Number(eff.value)));
               if (eff.type === 'fame') updated.fame = Math.min(100, f.fame + Number(eff.value));
@@ -568,7 +568,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const dialogs: DialogMessage[] = [];
 
     // Update fighter stats based on fight
-    let fighters = gs.fighters.map((f) => {
+    const fighters = gs.fighters.map((f) => {
       if (f.id !== outcome.winnerId && f.id !== outcome.loserId) return f;
 
       const won = f.id === outcome.winnerId;

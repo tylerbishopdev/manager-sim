@@ -1,6 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { getDialogOverrides } from '../../services/contentResolver';
+import type { GameScreen } from '../../types/gameplay';
 
 export default function DialogBox() {
   const { gameState, popDialog, setScreen, pushDialog, spendMoney, updateFighter, upgradeGym, hireStaff } = useGameStore();
@@ -33,7 +34,7 @@ export default function DialogBox() {
     // ── Screen navigation ──
     if (action.startsWith('screen:')) {
       const target = action.replace('screen:', '');
-      setScreen(target as any);
+      setScreen(target as GameScreen);
       return;
     }
 

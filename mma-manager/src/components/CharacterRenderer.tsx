@@ -92,7 +92,7 @@ export default function CharacterRenderer({ options, size = 160 }: Props) {
       )}
 
       {/* Facial hair layer */}
-      {renderFacialHair(facial, darkerSkin)}
+      {renderFacialHair(facial)}
 
       {/* Hat layer */}
       {renderHat(hat)}
@@ -128,7 +128,7 @@ function renderEyes(shape: string) {
   );
 }
 
-function renderFacialHair(type: string, _color: string) {
+function renderFacialHair(type: string) {
   switch (type) {
     case 'stubble':
       return (

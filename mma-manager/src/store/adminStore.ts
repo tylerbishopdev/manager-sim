@@ -26,6 +26,7 @@ const SAVE_DEBOUNCE_MS = 1500;
 
 // ── Migration ────────────────────────────────────────────
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration handles unknown legacy shapes
 function migrateBundle(raw: any): AdminContentBundle {
   const v = raw.version ?? 1;
   const bundle = { ...raw };
@@ -198,7 +199,7 @@ interface AdminStore {
 // fires debounced DB save if connected, and logs activity.
 
 function commit(
-  set: Function,
+  set: (partial: Partial<AdminStore>) => void,
   get: () => AdminStore,
   updated: AdminContentBundle,
   activity?: CommitActivity,
