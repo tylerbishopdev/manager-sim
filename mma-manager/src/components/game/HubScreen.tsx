@@ -226,7 +226,8 @@ export default function HubScreen() {
 
         {/* Mobile toggle */}
         <button className="hub-phone-toggle" onClick={() => setMobileMenuOpen(true)}>
-          <img src="/icons/manage.svg" alt="Menu" draggable={false} />
+          <img src="/icons/manage.svg" alt="" draggable={false} />
+          <span>MENU</span>
         </button>
       </div>
 
@@ -235,12 +236,40 @@ export default function HubScreen() {
         {phoneUI}
       </div>
 
-      {/* Mobile: full-screen phone overlay */}
+      {/* Mobile: full-screen app grid (no phone bezel) */}
       {mobileMenuOpen && (
-        <div className="hub-phone-overlay" onClick={() => setMobileMenuOpen(false)}>
-          <div className="hub-phone-overlay-inner" onClick={(e) => e.stopPropagation()}>
-            <button className="hub-phone-overlay-close" onClick={() => setMobileMenuOpen(false)}>✕</button>
-            {phoneUI}
+        <div className="mobile-menu-overlay" onClick={() => setMobileMenuOpen(false)}>
+          <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="mobile-menu-header">
+              <div className="mobile-menu-info">
+                <span className="mobile-menu-day">DAY {day} &middot; WK {week}</span>
+                <span className="mobile-menu-money">${money.toLocaleString()}</span>
+              </div>
+              <button className="mobile-menu-close" onClick={() => setMobileMenuOpen(false)}>✕</button>
+            </div>
+
+            {/* 3x3 App grid */}
+            <div className="mobile-menu-grid">
+              {appGrid.map((app) => (
+                <button key={app.label} className={`mobile-menu-app${app.alert ? ' mobile-menu-app--alert' : ''}`} onClick={app.action}>
+                  <div className="mobile-menu-app-icon">
+                    <img src={app.icon} alt="" draggable={false} />
+                  </div>
+                  <span className="mobile-menu-app-label">{app.label}</span>
+                  {app.alert && <span className="mobile-menu-app-badge">!</span>}
+                </button>
+              ))}
+            </div>
+
+            {/* Bottom dock */}
+            <div className="mobile-menu-dock">
+              {dockItems.map((d, i) => (
+                <button key={i} className="mobile-menu-dock-btn" onClick={d.action}>
+                  <img src={d.icon} alt="" draggable={false} />
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
