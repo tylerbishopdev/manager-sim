@@ -6,6 +6,7 @@ import { isAdminContentActive } from '../../services/contentResolver';
 export default function HubScreen() {
   const { gameState, pushDialog, advanceDay, manager } = useGameStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeItem, setActiveItem] = useState<string | null>(null);
 
   const customContentActive = useMemo(() => isAdminContentActive(), []);
 
@@ -136,47 +137,78 @@ export default function HubScreen() {
     { label: '>FORWARD', icon: '/icons/dayforward.svg', action: handleForward, alert: false },
   ];
 
-  // ── Dock bar: 3 bottom icons ──
-  const dockItems = [
-    { icon: '/icons/settings.svg', action: act(() => pushDialog({ speaker: 'SETTINGS', text: `Day ${day} — Week ${week}`, choices: [{ label: 'Save', action: 'save_game' }, { label: 'Back', action: 'dismiss' }] })) },
-    { icon: '/icons/notifications.svg', action: act(() => pushDialog({ speaker: 'NEWS', text: nextFight ? `Next fight in ${nextFight.day - day} days.` : 'No upcoming events.' })) },
-    { icon: '/icons/home.svg', action: act(() => { }) },
+
+  // ── Dock items with labels ──
+  const dockItemsLabeled = [
+    { label: 'Settings', icon: '/icons/settings.svg', action: act(() => pushDialog({ speaker: 'SETTINGS', text: `Day ${day} — Week ${week}`, choices: [{ label: 'Save', action: 'save_game' }, { label: 'Back', action: 'dismiss' }] })) },
+    { label: 'Messages', icon: '/icons/notifications.svg', action: act(() => pushDialog({ speaker: 'NEWS', text: nextFight ? `Next fight in ${nextFight.day - day} days.` : 'No upcoming events.' })) },
+    { label: 'Home', icon: '/icons/home.svg', action: act(() => { }) },
   ];
+
+  const handleAppClick = (label: string, action: () => void) => {
+    setActiveItem(label);
+    action();
+    setTimeout(() => setActiveItem(null), 200);
+  };
 
   const phoneUI = (
     <div className="phone-device">
-      {/* Phone bezel frame as background */}
-      <img src="/icons/phone-hub.svg" alt="" className="phone-bezel" />
-
-      {/* Phone screen content */}
-      <div className="phone-content">
-        {/* Status bar */}
-        <div className="phone-status">
-          <span>mma-fi</span>
-          <span>▮▮▮</span>
-          <span>▊▊▊</span>
-        </div>
-
-        {/* 3x3 App grid */}
-        <div className="phone-app-grid">
-          {appGrid.map((app) => (
-            <button key={app.label} className={`phone-app${app.alert ? ' phone-app--alert' : ''}`} onClick={app.action}>
-              <div className="phone-app-icon">
-                <img src={app.icon} alt="" draggable={false} />
+      {/* Phone Bezel (CSS-only) */}
+      <div className="phone-bezel-frame">
+        {/* Inner bezel edge */}
+        <div className="phone-inner-bezel">
+          {/* Status Bar */}
+          <div className="phone-status">
+            <div className="phone-signal-bars">
+              <div className="phone-signal-bar" style={{ height: 6 }} />
+              <div className="phone-signal-bar" style={{ height: 8 }} />
+              <div className="phone-signal-bar" style={{ height: 10 }} />
+              <div className="phone-signal-bar" style={{ height: 12 }} />
+            </div>
+            <div className="phone-battery">
+              <div className="phone-battery-body">
+                <div className="phone-battery-fill" />
               </div>
-              <span className="phone-app-label">{app.label}</span>
-              {app.alert && <span className="phone-app-badge">!</span>}
-            </button>
-          ))}
-        </div>
+              <div className="phone-battery-cap" />
+            </div>
+          </div>
 
-        {/* Dock bar */}
-        <div className="phone-dock">
-          {dockItems.map((d, i) => (
-            <button key={i} className="phone-dock-btn" onClick={d.action}>
-              <img src={d.icon} alt="" draggable={false} />
-            </button>
-          ))}
+          {/* Screen Content */}
+          <div className="phone-content">
+            {/* 3x3 Grid */}
+            <div className="phone-app-grid">
+              {appGrid.map((app) => (
+                <button
+                  key={app.label}
+                  className={`phone-app${app.alert ? ' phone-app--alert' : ''}${activeItem === app.label ? ' phone-app--active' : ''}`}
+                  onClick={() => handleAppClick(app.label, app.action)}
+                >
+                  <div className="phone-app-icon">
+                    <img src={app.icon} alt="" draggable={false} />
+                  </div>
+                  <span className="phone-app-label">{app.label}</span>
+                  {app.alert && <span className="phone-app-badge">!</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Dock / Bottom Bar */}
+          <div className="phone-dock">
+            {dockItemsLabeled.map((d) => (
+              <button key={d.label} className="phone-dock-btn" onClick={d.action}>
+                <img src={d.icon} alt="" draggable={false} />
+                <span className="phone-dock-label">{d.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Home Button Area */}
+          <div className="phone-home-btn-area">
+            <div className="phone-home-btn">
+              <div className="phone-home-btn-inner" />
+            </div>
+          </div>
         </div>
       </div>
     </div>
